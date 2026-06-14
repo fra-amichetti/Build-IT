@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { HardHat, Mail, Lock, AlertCircle } from 'lucide-react';
 import { Input } from '../components/shared/Input';
 import { Button } from '../components/shared/Button';
-import { useApp } from '../context/AppContext';
+import { login } from '../services/api.ts';
 
 interface ViewAutenticazioneProps {
   onSuccess: (role: string) => void;
@@ -10,31 +10,26 @@ interface ViewAutenticazioneProps {
 }
 
 export function ViewAutenticazione({ onSuccess, onRegister }: ViewAutenticazioneProps) {
-  const { login } = useApp();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  setIsLoading(true);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  try {
+    const result = await login(email, password);
+    // Converti da "AMMINISTRATORE" a "Amministratore"
+    const ruolo = result.ruolo.charAt(0).toUpperCase() + result.ruolo.slice(1).toLowerCase();
+    onSuccess(ruolo);
+  } catch (err: any) {
+    setError(err.message || 'Errore durante il login');
+  }
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const result = login(email, password);
-
-    if (result.success && result.user) {
-      onSuccess(result.user.role);
-    } else {
-      setError(result.error || 'Errore durante il login');
-    }
-
-    setIsLoading(false);
-  };
-
+  setIsLoading(false);
+};
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-red-50 to-rose-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
