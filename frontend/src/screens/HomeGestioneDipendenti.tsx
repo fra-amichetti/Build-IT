@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, User, Mail, Trash2, Users, UserPlus } from 'lucide-react';
 import { Header } from '../components/shared/Header';
 import { Button } from '../components/shared/Button';
 import { Input } from '../components/shared/Input';
 import { Card, CardBody, CardHeader } from '../components/shared/Card';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
-import { useApp } from '../context/AppContext';
+import { aggiungiDipendente, getDipendenti } from '../services/api';
 import { User as UserType } from '../types';
 
 interface HomeGestioneDipendentiProps {
@@ -13,7 +14,7 @@ interface HomeGestioneDipendentiProps {
 }
 
 export function HomeGestioneDipendenti({ onBack }: HomeGestioneDipendentiProps) {
-  const { users, addEmployee, deleteEmployee } = useApp();
+  
   const [showAddForm, setShowAddForm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -26,8 +27,11 @@ export function HomeGestioneDipendenti({ onBack }: HomeGestioneDipendentiProps) 
   const [isLoading, setIsLoading] = useState(false);
 
   // Filter only employees
-  const employees = users.filter(u => u.role === 'Dipendente');
+  const [employees, setEmployees] = useState<any[]>([]);
 
+useEffect(() => {
+  getDipendenti().then(setEmployees).catch(console.error);
+}, []);
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -54,33 +58,32 @@ export function HomeGestioneDipendenti({ onBack }: HomeGestioneDipendentiProps) 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validateForm()) return;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  setIsLoading(true);
 
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  try {
+    await aggiungiDipendente(formData.nome, formData.cognome, formData.email, formData.password, '');
+const lista = await getDipendenti();
+setEmployees(lista);
+setFormData({ nome: '', cognome: '', email: '', password: '' });
+setShowAddForm(false);
+setErrors({});
+  } catch (err: any) {
+    setErrors({ email: err.message || 'Errore durante il salvataggio' });
+  }
 
-    const result = addEmployee(formData.nome, formData.cognome, formData.email, formData.password);
-
-    if (result.success) {
-      setFormData({ nome: '', cognome: '', email: '', password: '' });
-      setShowAddForm(false);
-      setErrors({});
-    } else {
-      setErrors({ email: result.error || 'Errore durante il salvataggio' });
-    }
-
-    setIsLoading(false);
-  };
+  setIsLoading(false);
+};
 
   const handleDelete = () => {
-    if (deleteId) {
-      deleteEmployee(deleteId);
-      setDeleteId(null);
-    }
-  };
+  if (deleteId) {
+    setEmployees(employees.filter(e => e.id.toString() !== deleteId));
+    setDeleteId(null);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -189,7 +192,7 @@ export function HomeGestioneDipendenti({ onBack }: HomeGestioneDipendentiProps) 
         ) : (
           <div className="space-y-3">
             {employees.map(emp => (
-              <Card key={emp.id}>
+              <Card key={emp.id.toString()}>
                 <CardBody className="p-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -210,7 +213,7 @@ export function HomeGestioneDipendenti({ onBack }: HomeGestioneDipendentiProps) 
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setDeleteId(emp.id)}
+                      onClick={() => setDeleteId(emp.id.toString())}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       icon={<Trash2 className="w-4 h-4" />}
                     >
@@ -224,7 +227,7 @@ export function HomeGestioneDipendenti({ onBack }: HomeGestioneDipendentiProps) 
         )}
 
         <ConfirmDialog
-          isOpen={!!deleteId}
+         isOpen={deleteId !== null}
           title="Elimina Dipendente"
           message="Sei sicuro di voler eliminare questo dipendente? Questa operazione non può essere annullata."
           confirmLabel="Elimina"

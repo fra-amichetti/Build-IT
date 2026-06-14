@@ -49,14 +49,17 @@ function AppContent() {
   const [selectedSite, setSelectedSite] = useState<ConstructionSite | null>(null);
   const [selectedPhase, setSelectedPhase] = useState<WorkPhase | null>(null);
   const [showPhaseCompleteDialog, setShowPhaseCompleteDialog] = useState(false);
-
-  const handleLoginSuccess = (role: string) => {
-    if (role === 'Amministratore' || role === 'Dipendente') {
-      setCurrentScreen('homeAdmin');
-    } else if (role === 'Cliente') {
-      setCurrentScreen('homeCliente');
-    }
-  };
+const [loggedUser, setLoggedUser] = useState<any>(null);
+  const handleLoginSuccess = (role: string, user: any) => {
+  setLoggedUser(user);
+  if (role === 'Amministratore') {
+    setCurrentScreen('homeAdmin');
+  } else if (role === 'Dipendente') {
+    setCurrentScreen('cantieri');
+  } else if (role === 'Cliente') {
+    setCurrentScreen('homeCliente');
+  }
+};
 
   // Redirect to auth when user logs out
   useEffect(() => {
@@ -115,15 +118,21 @@ function AppContent() {
         );
 
       case 'cantieri':
-        return (
-          <HomeListaCantieri
-            onBack={currentUser?.role === 'Cliente' ? () => setCurrentScreen('homeCliente') : () => setCurrentScreen('homeAdmin')}
-            onSelectSite={handleSelectSite}
-            onAddSite={canEdit ? () => setCurrentScreen('aggiungiCantiere') : undefined}
-            readOnly={isReadOnly}
-            clientEmail={currentUser?.role === 'Cliente' ? currentUser.email : undefined}
-          />
-        );
+  return (
+    <HomeListaCantieri
+     onBack={
+  loggedUser?.ruolo === 'DIPENDENTE'
+    ? undefined
+    : loggedUser?.ruolo === 'CLIENTE'
+    ? () => setCurrentScreen('homeCliente')
+    : () => setCurrentScreen('homeAdmin')
+}
+      onSelectSite={handleSelectSite}
+      onAddSite={canEdit ? () => setCurrentScreen('aggiungiCantiere') : undefined}
+      readOnly={isReadOnly}
+      clientEmail={currentUser?.role === 'Cliente' ? currentUser.email : undefined}
+    />
+  );
 
       case 'cantiere':
         if (!selectedSite) return null;

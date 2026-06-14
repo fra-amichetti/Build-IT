@@ -3,9 +3,8 @@ import { HardHat, Mail, Lock, AlertCircle } from 'lucide-react';
 import { Input } from '../components/shared/Input';
 import { Button } from '../components/shared/Button';
 import { login } from '../services/api.ts';
-
 interface ViewAutenticazioneProps {
-  onSuccess: (role: string) => void;
+  onSuccess: (role: string, user: any) => void;
   onRegister: () => void;
 }
 
@@ -14,7 +13,8 @@ export function ViewAutenticazione({ onSuccess, onRegister }: ViewAutenticazione
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);const handleSubmit = async (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setError('');
   setIsLoading(true);
@@ -23,7 +23,7 @@ export function ViewAutenticazione({ onSuccess, onRegister }: ViewAutenticazione
     const result = await login(email, password);
     // Converti da "AMMINISTRATORE" a "Amministratore"
     const ruolo = result.ruolo.charAt(0).toUpperCase() + result.ruolo.slice(1).toLowerCase();
-    onSuccess(ruolo);
+   onSuccess(ruolo, result);
   } catch (err: any) {
     setError(err.message || 'Errore durante il login');
   }
