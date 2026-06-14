@@ -1,5 +1,6 @@
 package com.buildit.backend.autenticazione;
 
+import com.buildit.backend.dominio.Cliente;
 import com.buildit.backend.dominio.Utente;
 import com.buildit.backend.repository.UtenteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,4 +44,24 @@ public class AutenticazioneController {
             "ruolo", utente.get().getRuolo()
         ));
     }
+    @PostMapping("/register")
+public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
+    String email = body.get("email");
+    String password = body.get("password");
+    String nome = body.get("nome");
+    String cognome = body.get("cognome");
+
+    if (utenteRepository.existsByEmail(email)) {
+        return ResponseEntity.status(400).body(Map.of("errore", "Email già registrata"));
+    }
+
+    Cliente cliente = new Cliente();
+    cliente.setNome(nome);
+    cliente.setCognome(cognome);
+    cliente.setEmail(email);
+    cliente.setHashPassword(passwordEncoder.encode(password));
+    utenteRepository.save(cliente);
+
+    return ResponseEntity.ok(Map.of("messaggio", "Registrazione completata"));
+}
 }

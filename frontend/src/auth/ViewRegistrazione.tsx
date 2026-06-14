@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { HardHat, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Input } from '../components/shared/Input';
 import { Button } from '../components/shared/Button';
-import { useApp } from '../context/AppContext';
-
+import { register } from '../services/api.ts';
 interface ViewRegistrazioneProps {
   onBack: () => void;
 }
 
 export function ViewRegistrazione({ onBack }: ViewRegistrazioneProps) {
-  const { register } = useApp();
+
   const [nome, setNome] = useState('');
   const [cognome, setCognome] = useState('');
   const [email, setEmail] = useState('');
@@ -51,29 +50,21 @@ export function ViewRegistrazione({ onBack }: ViewRegistrazioneProps) {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+  setIsLoading(true);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  try {
+    await register(nome, cognome, email, password);
+    setSuccess(true);
+    setTimeout(() => onBack(), 2000);
+  } catch (err: any) {
+    setErrors({ email: err.message || 'Errore durante la registrazione' });
+  }
 
-    if (!validateForm()) return;
-
-    setIsLoading(true);
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const result = register(nome, cognome, email, password);
-
-    if (result.success) {
-      setSuccess(true);
-      setTimeout(() => {
-        onBack();
-      }, 2000);
-    } else {
-      setErrors({ email: result.error || 'Errore durante la registrazione' });
-    }
-
-    setIsLoading(false);
-  };
+  setIsLoading(false);
+};
 
   if (success) {
     return (
