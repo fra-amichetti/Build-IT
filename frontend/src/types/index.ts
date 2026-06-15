@@ -18,6 +18,7 @@ export interface ConstructionSite {
   nome: string;
   indirizzo: string;
   dataInizio: string;
+  dataInizioEffettiva?: string;
   dataFineStimata: string;
   dataConsegnaEffettiva?: string;
   emailCliente?: string;
@@ -33,6 +34,7 @@ export interface WorkPhase {
   nome: string;
   descrizione: string;
   dataInizio: string;
+  dataInizioEffettiva?: string;
   dataFinePrevista: string;
   dataFineEffettiva?: string;
   squadraId: string;
