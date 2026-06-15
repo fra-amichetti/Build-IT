@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Save, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Clock } from 'lucide-react';
 import { Header } from '../components/shared/Header';
 import { Button } from '../components/shared/Button';
-import { Input, Select, Textarea } from '../components/shared/Input';
+import { Input, Textarea } from '../components/shared/Input';
 import { Card, CardBody } from '../components/shared/Card';
-import { useApp } from '../context/AppContext';
 import { WorkPhase, ConstructionSite } from '../types';
+import { modificaFase } from '../services/api';
 
 interface ViewModificaFaseCantiereProps {
   phase: WorkPhase;
@@ -15,11 +15,9 @@ interface ViewModificaFaseCantiereProps {
 }
 
 export function ViewModificaFaseCantiere({ phase, site, onBack, onSuccess }: ViewModificaFaseCantiereProps) {
-  const { teams, updateWorkPhase } = useApp();
   const [formData, setFormData] = useState({
-    descrizione: phase.descrizione,
-    dataFinePrevista: phase.dataFinePrevista,
-    squadraId: phase.squadraId,
+    nome: phase.nome,
+    descrizione: phase.descrizione || '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -28,32 +26,22 @@ export function ViewModificaFaseCantiere({ phase, site, onBack, onSuccess }: Vie
     e.preventDefault();
     setErrors({});
 
-    if (!formData.dataFinePrevista) {
-      setErrors({ dataFinePrevista: 'La data di fine prevista è obbligatoria' });
-      return;
-    }
-
-    if (new Date(formData.dataFinePrevista) <= new Date(phase.dataInizio)) {
-      setErrors({ dataFinePrevista: 'La data di fine deve essere successiva alla data di inizio' });
+    if (!formData.nome.trim()) {
+      setErrors({ nome: 'Il nome è obbligatorio' });
       return;
     }
 
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const result = updateWorkPhase(phase.id, {
-      descrizione: formData.descrizione,
-      dataFinePrevista: formData.dataFinePrevista,
-      squadraId: formData.squadraId,
-    });
-
-    setIsLoading(false);
-
-    if (result.success) {
+    try {
+      await modificaFase(Number(phase.id), {
+        nome: formData.nome,
+        descrizione: formData.descrizione,
+      });
       onSuccess();
-    } else {
-      setErrors({ squadraId: result.error || 'Errore durante il salvataggio' });
+    } catch (err: any) {
+      setErrors({ nome: err.message || 'Errore durante il salvataggio' });
     }
+    setIsLoading(false);
   };
 
   return (
@@ -85,18 +73,20 @@ export function ViewModificaFaseCantiere({ phase, site, onBack, onSuccess }: Vie
           <CardBody className="p-4 bg-gray-50">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-500">Nome Fase</p>
-                <p className="font-medium text-gray-900">{phase.nome}</p>
+                <p className="text-gray-500">Data Inizio Prevista</p>
+                <p className="font-medium text-gray-900">
+                  {new Date(phase.dataInizioPrevista + 'T00:00:00').toLocaleDateString('it-IT')}
+                </p>
               </div>
               <div>
-                <p className="text-gray-500">Data Inizio</p>
+                <p className="text-gray-500">Data Fine Prevista</p>
                 <p className="font-medium text-gray-900">
-                  {new Date(phase.dataInizio).toLocaleDateString('it-IT')}
+                  {new Date(phase.dataFinePrevista + 'T00:00:00').toLocaleDateString('it-IT')}
                 </p>
               </div>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              Nome e data inizio non sono modificabili
+              Le date non sono modificabili
             </p>
           </CardBody>
         </Card>
@@ -104,40 +94,19 @@ export function ViewModificaFaseCantiere({ phase, site, onBack, onSuccess }: Vie
         <Card>
           <CardBody className="p-6">
             <form onSubmit={handleSubmit} className="space-y-5">
+              <Input
+                label="Nome Fase"
+                value={formData.nome}
+                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                error={errors.nome}
+                required
+              />
               <Textarea
                 label="Descrizione"
                 value={formData.descrizione}
                 onChange={(e) => setFormData({ ...formData, descrizione: e.target.value })}
                 rows={3}
               />
-
-              <Input
-                label="Nuova Data Fine Prevista"
-                type="date"
-                value={formData.dataFinePrevista}
-                onChange={(e) => setFormData({ ...formData, dataFinePrevista: e.target.value })}
-                error={errors.dataFinePrevista}
-                required
-              />
-
-              <Select
-                label="Squadra Assegnata"
-                value={formData.squadraId}
-                onChange={(e) => setFormData({ ...formData, squadraId: e.target.value })}
-                error={errors.squadraId}
-                options={teams.map(team => ({
-                  value: team.id,
-                  label: `${team.nome} (${team.specializzazione})`,
-                }))}
-              />
-
-              {errors.squadraId && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-red-600" />
-                  <p className="text-sm text-red-700">{errors.squadraId}</p>
-                </div>
-              )}
-
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="secondary" onClick={onBack}>
                   Annulla

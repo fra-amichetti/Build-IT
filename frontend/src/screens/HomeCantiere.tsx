@@ -56,6 +56,15 @@ const [showTerminaDialog, setShowTerminaDialog] = useState(false);
     year: 'numeric',
   });
 };
+function mapStatoFrontend(stato: string): string {
+  switch (stato) {
+    case 'PIANIFICATO': return 'Pianificato';
+    case 'IN_CORSO': return 'In Corso';
+    case 'IN_RITARDO': return 'In Ritardo';
+    case 'TERMINATO': return 'Terminato';
+    default: return stato;
+  }
+}
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'fasi', label: 'Fasi', icon: <Clock className="w-4 h-4" /> },
@@ -65,12 +74,12 @@ const [showTerminaDialog, setShowTerminaDialog] = useState(false);
 
   // Check if site can be closed (not already terminated)
   const canCloseSite = site.stato !== 'TERMINATO';
-function mapStatoFrontend(stato: string): string {
+function mapStatoFase(stato: string): string {
   switch (stato) {
-    case 'PIANIFICATO': return 'Pianificato';
+    case 'PIANIFICATA': return 'Pianificata';
     case 'IN_CORSO': return 'In Corso';
     case 'IN_RITARDO': return 'In Ritardo';
-    case 'TERMINATO': return 'Terminato';
+    case 'TERMINATA': return 'Completata';
     default: return stato;
   }
 }
@@ -115,7 +124,7 @@ function mapStatoFrontend(stato: string): string {
                 <div className="mt-4 flex flex-wrap gap-4">
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">Inizio Stimata:</span>
+                    <span className="text-gray-600">Inizio Previsto:</span>
                     <span className="font-medium text-gray-900">{formatDate(site.dataInizioPrevista)}</span>
                   </div>
                   {site.dataInizioEffettiva && (
@@ -127,7 +136,7 @@ function mapStatoFrontend(stato: string): string {
   )}
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">Fine stimata:</span>
+                    <span className="text-gray-600">Fine Prevista:</span>
                     <span className="font-medium text-gray-900">{formatDate(site.dataFinePrevista)}</span>
                   </div>
                   {site.dataFineEffettiva && (
@@ -141,11 +150,28 @@ function mapStatoFrontend(stato: string): string {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
-               <StatusBadge
-  status={mapStatoFrontend(site.stato)}
-  variant={getSiteStatusVariant(mapStatoFrontend(site.stato))}
-  size="lg"
-/>
+             <StatusBadge
+    status={mapStatoFrontend(site.stato)}
+    variant={getSiteStatusVariant(mapStatoFrontend(site.stato))}
+    size="lg"
+  />
+ {!readOnly && onAddPhase && site.stato !== 'TERMINATO' && (
+  <Button
+    variant="secondary"
+    size="sm"
+    onClick={async () => {
+      try {
+        await iniziaLavoriCantiere(Number(site.id));
+        onBack();
+      } catch (err: any) {
+        alert(err.message);
+      }
+    }}
+    icon={<CheckCircle className="w-4 h-4" />}
+  > 
+    Avvia
+  </Button>
+)}
                 {!readOnly && (
                   <>
                     <Button
@@ -168,23 +194,7 @@ function mapStatoFrontend(stato: string): string {
   </Button>
 )} </>
                 )}
-             {!readOnly && onAddPhase && site.stato !== 'TERMINATO' && (
-  <Button
-    variant="secondary"
-    size="sm"
-    onClick={async () => {
-      try {
-        await iniziaLavoriCantiere(Number(site.id));
-        onBack();
-      } catch (err: any) {
-        alert(err.message);
-      }
-    }}
-    icon={<CheckCircle className="w-4 h-4" />}
-  > 
-    Avvia
-  </Button>
-)}
+            
               </div>
             </div>
           </CardBody>
@@ -263,9 +273,9 @@ function mapStatoFrontend(stato: string): string {
 
                           <div className="flex items-center gap-3">
                             <StatusBadge
-                              status={phase.stato}
-                              variant={getPhaseStatusVariant(phase.stato)}
-                            />
+  status={mapStatoFase(phase.stato)}
+  variant={getPhaseStatusVariant(mapStatoFase(phase.stato))}
+/>
                             <ChevronRight className="w-5 h-5 text-gray-400" />
                           </div>
                         </div>

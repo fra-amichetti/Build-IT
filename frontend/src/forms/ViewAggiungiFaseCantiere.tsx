@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Save, Clock, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Save, Clock } from 'lucide-react';
 import { Header } from '../components/shared/Header';
 import { Button } from '../components/shared/Button';
 import { Input, Select, Textarea } from '../components/shared/Input';
 import { Card, CardBody } from '../components/shared/Card';
-import { useApp } from '../context/AppContext';
 import { ConstructionSite } from '../types';
+import { aggiungiFase } from '../services/api';
+
+const BASE_URL = 'http://localhost:8080/api';
 
 interface ViewAggiungiFaseCantiereProps {
   site: ConstructionSite;
@@ -14,45 +16,33 @@ interface ViewAggiungiFaseCantiereProps {
 }
 
 export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiungiFaseCantiereProps) {
-  const { teams, addWorkPhase } = useApp();
+  const [squadre, setSquadre] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     nome: '',
     descrizione: '',
-    dataInizio: '',
+    dataInizioPrevista: '',
     dataFinePrevista: '',
     squadraId: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const availableTeams = teams.filter(team => {
-    // In a real app, we'd check team availability here
-    return true;
-  });
+  useEffect(() => {
+    fetch(`${BASE_URL}/squadre`)
+      .then(r => r.json())
+      .then(setSquadre)
+      .catch(console.error);
+  }, []);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.nome.trim()) {
-      newErrors.nome = 'Il nome della fase è obbligatorio';
-    }
-
-    if (!formData.dataInizio) {
-      newErrors.dataInizio = 'La data di inizio è obbligatoria';
-    }
-
+    if (!formData.nome.trim()) newErrors.nome = 'Il nome della fase è obbligatorio';
+    if (!formData.dataInizioPrevista) newErrors.dataInizioPrevista = 'La data di inizio è obbligatoria';
     if (!formData.dataFinePrevista) {
       newErrors.dataFinePrevista = 'La data di fine prevista è obbligatoria';
-    } else if (formData.dataInizio && new Date(formData.dataFinePrevista) <= new Date(formData.dataInizio)) {
+    } else if (formData.dataInizioPrevista && new Date(formData.dataFinePrevista) <= new Date(formData.dataInizioPrevista)) {
       newErrors.dataFinePrevista = 'La data di fine deve essere successiva alla data di inizio';
     }
-
-    if (formData.squadraId) {
-      // Check team overlap
-      const teamOverlap = teams.some(t => t.id === formData.squadraId);
-      // This is simplified - actual overlap check happens in context
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -62,35 +52,20 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
     if (!validateForm()) return;
 
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    let stato: 'Pianificata' | 'In Corso' = 'Pianificata';
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const startDate = new Date(formData.dataInizio);
-    startDate.setHours(0, 0, 0, 0);
-
-    if (startDate <= today) {
-      stato = 'In Corso';
-    }
-
-    const result = addWorkPhase({
-      cantiereId: site.id,
-      nome: formData.nome,
-      descrizione: formData.descrizione,
-      dataInizio: formData.dataInizio,
-      dataFinePrevista: formData.dataFinePrevista,
-      squadraId: formData.squadraId || 'team-1', // Default to first team if none selected
-      stato,
-    });
-
-    setIsLoading(false);
-
-    if (result.success) {
+    try {
+      await aggiungiFase(
+        Number(site.id),
+        formData.nome,
+        formData.descrizione,
+        formData.dataInizioPrevista,
+        formData.dataFinePrevista,
+        formData.squadraId || undefined
+      );
       onSuccess();
-    } else {
-      setErrors({ squadraId: result.error || 'Errore durante il salvataggio' });
+    } catch (err: any) {
+      setErrors({ nome: err.message || 'Errore durante il salvataggio' });
     }
+    setIsLoading(false);
   };
 
   return (
@@ -140,14 +115,13 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <Input
-                  label="Data Inizio"
+                  label="Data Inizio Prevista"
                   type="date"
-                  value={formData.dataInizio}
-                  onChange={(e) => setFormData({ ...formData, dataInizio: e.target.value })}
-                  error={errors.dataInizio}
+                  value={formData.dataInizioPrevista}
+                  onChange={(e) => setFormData({ ...formData, dataInizioPrevista: e.target.value })}
+                  error={errors.dataInizioPrevista}
                   required
                 />
-
                 <Input
                   label="Data Fine Prevista"
                   type="date"
@@ -162,22 +136,14 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
                 label="Squadra Assegnata"
                 value={formData.squadraId}
                 onChange={(e) => setFormData({ ...formData, squadraId: e.target.value })}
-                error={errors.squadraId}
                 options={[
                   { value: '', label: 'Seleziona una squadra...' },
-                  ...availableTeams.map(team => ({
-                    value: team.id,
-                    label: `${team.nome} (${team.specializzazione})`,
+                  ...squadre.map(s => ({
+                    value: s.id.toString(),
+                    label: `${s.nome} (${s.specializzazione})`,
                   })),
                 ]}
               />
-
-              {errors.squadraId && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-red-600" />
-                  <p className="text-sm text-red-700">{errors.squadraId}</p>
-                </div>
-              )}
 
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="secondary" onClick={onBack}>

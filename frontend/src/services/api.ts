@@ -173,8 +173,8 @@ export async function aggiungiFase(
 
 export async function modificaFase(
   id: number,
-  updates: { descrizione?: string; dataFinePrevista?: string; squadraId?: string }
-) {
+  updates: { nome?: string; descrizione?: string; dataFinePrevista?: string; squadraId?: string }
+)  {
   const response = await fetch(`${BASE_URL}/fasi/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -196,5 +196,12 @@ export async function terminaFase(id: number) {
   const response = await fetch(`${BASE_URL}/fasi/${id}/termina`, { method: 'PUT' });
   const data = await response.json();
   if (!response.ok) throw new Error(data.errore || 'Errore nella chiusura della fase');
+  return data;
+}
+
+export async function getDettagliFase(id: number) {
+  const response = await fetch(`${BASE_URL}/fasi/${id}`);
+  const data = await response.json();
+  if (!response.ok) throw new Error('Fase non trovata');
   return data;
 }

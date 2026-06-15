@@ -25,18 +25,20 @@ export interface ConstructionSite {
 }
 
 // Work Phase Types
-export type PhaseStatus = 'Pianificata' | 'In Corso' | 'Completata' | 'In Ritardo';
+export type PhaseStatus = 'Pianificata' | 'In Corso' | 'Completata' | 'PIANIFICATA' | 'IN_CORSO' | 'TERMINATA';
+
 
 export interface WorkPhase {
   id: string;
   cantiereId: string;
   nome: string;
   descrizione: string;
-  dataInizio: string;
+  dataInizioPrevista: string;
   dataInizioEffettiva?: string;
   dataFinePrevista: string;
   dataFineEffettiva?: string;
-  squadraId: string;
+  squadraId?: string;
+  squadra?: any;
   stato: PhaseStatus;
 }
 

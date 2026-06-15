@@ -21,7 +21,7 @@ import { ViewTerminaFaseCantiere } from './forms/ViewTerminaFaseCantiere';
 import { ViewAggiungiDocumentoTecnico } from './forms/ViewAggiungiDocumentoTecnico';
 import { ViewAggiungiDocumentoContabile } from './forms/ViewAggiungiDocumentoContabile';
 import { ConstructionSite, WorkPhase } from './types';
-import { terminaCantiere, getDettagliCantiere } from './services/api';
+import { terminaCantiere, getDettagliCantiere, getDettagliFase } from './services/api';
 
 type Screen =
   | 'auth'
@@ -203,10 +203,8 @@ onSelectPhase={handleSelectPhase}
             phase={selectedPhase}
             site={selectedSite}
             onBack={() => setCurrentScreen('cantiere')}
-            onEditPhase={canEdit && selectedPhase.stato !== 'Completata' ? () => setCurrentScreen('modificaFase') : undefined}
-            onCompletePhase={canEdit && selectedPhase.stato !== 'Completata' ? () => setShowPhaseCompleteDialog(true) : undefined}
-            readOnly={isReadOnly || selectedPhase.stato === 'Completata' || selectedSite.stato === 'Terminato'}
-          />
+            onEditPhase={canEdit && selectedPhase.stato !== 'TERMINATA' ? () => setCurrentScreen('modificaFase') : undefined}
+         onCompletePhase={canEdit && selectedPhase.stato !== 'TERMINATA' ? () => setShowPhaseCompleteDialog(true) : undefined} />
         );
 
       case 'aggiungiFase':
@@ -220,15 +218,19 @@ onSelectPhase={handleSelectPhase}
         );
 
       case 'modificaFase':
-        if (!selectedPhase || !selectedSite) return null;
-        return (
-          <ViewModificaFaseCantiere
-            phase={selectedPhase}
-            site={selectedSite}
-            onBack={() => setCurrentScreen('fase')}
-            onSuccess={() => setCurrentScreen('fase')}
-          />
-        );
+  if (!selectedPhase || !selectedSite) return null;
+  return (
+    <ViewModificaFaseCantiere
+      phase={selectedPhase}
+      site={selectedSite}
+      onBack={() => setCurrentScreen('fase')}
+      onSuccess={async () => {
+        const aggiornata = await getDettagliFase(Number(selectedPhase.id));
+        setSelectedPhase(aggiornata);
+        setCurrentScreen('fase');
+      }}
+    />
+  );
 
       case 'documentiTecnici':
         if (!selectedSite) return null;

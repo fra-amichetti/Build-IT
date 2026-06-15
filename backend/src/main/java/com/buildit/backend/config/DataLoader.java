@@ -2,7 +2,9 @@ package com.buildit.backend.config;
 
 import com.buildit.backend.dominio.Amministratore;
 import com.buildit.backend.dominio.Cantiere;
+import com.buildit.backend.dominio.FaseLavorativa;
 import com.buildit.backend.dominio.StatoCantiere;
+import com.buildit.backend.dominio.StatoFase;
 import com.buildit.backend.repository.UtenteRepository;
 
 import java.time.LocalDate;
@@ -13,14 +15,18 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
+import com.buildit.backend.dominio.FaseLavorativa;
+import com.buildit.backend.dominio.StatoFase;
+import com.buildit.backend.repository.FaseLavorativaRepository;
+import java.util.Optional;
 @Configuration
 public class DataLoader {
 
     @Bean
-   public CommandLineRunner loadData(UtenteRepository utenteRepository,
+ public CommandLineRunner loadData(UtenteRepository utenteRepository,
                                   PasswordEncoder passwordEncoder,
-                                  CantiereRepository cantiereRepository) {
+                                  CantiereRepository cantiereRepository,
+                                  FaseLavorativaRepository faseLavorativaRepository) {
         return args -> {
             if (!utenteRepository.existsByEmail("admin1@buildit.it")) {
                 Amministratore admin = new Amministratore();
@@ -75,6 +81,59 @@ c3.setStato(StatoCantiere.PIANIFICATO);
     cantiereRepository.save(c4);
 
     System.out.println("Cantieri di test creati!");
+}
+// Fasi di test
+if (faseLavorativaRepository.findAll().isEmpty()) {
+    Optional<Cantiere> c1 = cantiereRepository.findById(1L);
+    Optional<Cantiere> c2 = cantiereRepository.findById(2L);
+
+    if (c1.isPresent()) {
+        FaseLavorativa f1 = new FaseLavorativa();
+        f1.setNome("Fondamenta");
+        f1.setDescrizione("Scavo e getto delle fondamenta");
+        f1.setDataInizioPrevista(LocalDate.of(2025, 1, 15));
+        f1.setDataFinePrevista(LocalDate.of(2025, 3, 15));
+        f1.setDataInizioEffettiva(LocalDate.of(2025, 1, 20));
+        f1.setDataFineEffettiva(LocalDate.of(2025, 3, 10));
+        f1.setStato(StatoFase.TERMINATA);
+        f1.setCantiere(c1.get());
+        faseLavorativaRepository.save(f1);
+
+        FaseLavorativa f2 = new FaseLavorativa();
+        f2.setNome("Struttura portante");
+        f2.setDescrizione("Costruzione muri e solai");
+        f2.setDataInizioPrevista(LocalDate.of(2025, 3, 16));
+        f2.setDataFinePrevista(LocalDate.of(2025, 7, 31));
+        f2.setDataInizioEffettiva(LocalDate.of(2025, 3, 16));
+        f2.setStato(StatoFase.IN_CORSO);
+        f2.setCantiere(c1.get());
+        faseLavorativaRepository.save(f2);
+
+        FaseLavorativa f3 = new FaseLavorativa();
+        f3.setNome("Impianti");
+        f3.setDescrizione("Impianti elettrici e idraulici");
+        f3.setDataInizioPrevista(LocalDate.of(2025, 8, 1));
+        f3.setDataFinePrevista(LocalDate.of(2025, 10, 31));
+        f3.setStato(StatoFase.PIANIFICATA);
+        f3.setCantiere(c1.get());
+        faseLavorativaRepository.save(f3);
+
+        System.out.println("Fasi cantiere 1 create!");
+    }
+
+    if (c2.isPresent()) {
+        FaseLavorativa f4 = new FaseLavorativa();
+        f4.setNome("Fondamenta");
+        f4.setDescrizione("Scavo e getto delle fondamenta");
+        f4.setDataInizioPrevista(LocalDate.of(2025, 3, 5));
+        f4.setDataFinePrevista(LocalDate.of(2025, 5, 31));
+        f4.setDataInizioEffettiva(LocalDate.of(2025, 3, 5));
+        f4.setStato(StatoFase.IN_CORSO);
+        f4.setCantiere(c2.get());
+        faseLavorativaRepository.save(f4);
+
+        System.out.println("Fasi cantiere 2 create!");
+    }
 }
         };
     }
