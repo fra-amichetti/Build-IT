@@ -10,6 +10,7 @@ import { StatusBadge, getSiteStatusVariant, getPhaseStatusVariant } from '../com
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
 import { useApp } from '../context/AppContext';
 import { ConstructionSite, WorkPhase } from '../types';
+import { iniziaLavoriCantiere, terminaCantiere } from '../services/api';
 
 type TabType = 'fasi' | 'tecnici' | 'contabili';
 
@@ -40,14 +41,16 @@ export function HomeCantiere({
   const [activeTab, setActiveTab] = useState<TabType>('fasi');
 
   const phases = getPhasesBySite(site.id);
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+const [showTerminaDialog, setShowTerminaDialog] = useState(false);
+  const formatDate = (dateStr?: string) => {
+  if (!dateStr) return '—';
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'fasi', label: 'Fasi', icon: <Clock className="w-4 h-4" /> },
@@ -57,7 +60,15 @@ export function HomeCantiere({
 
   // Check if site can be closed (not already terminated)
   const canCloseSite = site.stato !== 'Terminato';
-
+function mapStatoFrontend(stato: string): string {
+  switch (stato) {
+    case 'PIANIFICATO': return 'Pianificato';
+    case 'IN_CORSO': return 'In Corso';
+    case 'IN_RITARDO': return 'In Ritardo';
+    case 'TERMINATO': return 'Terminato';
+    default: return stato;
+  }
+}
   return (
     <div className="min-h-screen bg-gray-50">
       <Header showMenuButton onMenuClick={onBack} />
@@ -99,31 +110,37 @@ export function HomeCantiere({
                 <div className="mt-4 flex flex-wrap gap-4">
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">Inizio:</span>
-                    <span className="font-medium text-gray-900">{formatDate(site.dataInizio)}</span>
+                    <span className="text-gray-600">Inizio Stimata:</span>
+                    <span className="font-medium text-gray-900">{formatDate(site.dataInizioPrevista)}</span>
                   </div>
+                  {site.dataInizioEffettiva && (
+    <div className="flex items-center gap-2 text-sm">
+      <Calendar className="w-4 h-4 text-gray-400" />
+      <span className="text-gray-600">Inizio effettivo:</span>
+      <span className="font-medium text-gray-900">{formatDate(site.dataInizioEffettiva)}</span>
+    </div>
+  )}
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <span className="text-gray-600">Fine stimata:</span>
-                    <span className="font-medium text-gray-900">{formatDate(site.dataFineStimata)}</span>
+                    <span className="font-medium text-gray-900">{formatDate(site.dataFinePrevista)}</span>
                   </div>
-                  {site.dataConsegnaEffettiva && (
+                  {site.dataFineEffettiva && (
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      <span className="text-gray-600">Consegna:</span>
-                      <span className="font-medium text-gray-900">{formatDate(site.dataConsegnaEffettiva)}</span>
+                      <span className="text-gray-600">Fine Effettiva:</span>
+                      <span className="font-medium text-gray-900">{formatDate(site.dataFineEffettiva)}</span>
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <StatusBadge
-                  status={site.stato}
-                  variant={getSiteStatusVariant(site.stato)}
-                  size="lg"
-                />
-
+               <StatusBadge
+  status={mapStatoFrontend(site.stato)}
+  variant={getSiteStatusVariant(mapStatoFrontend(site.stato))}
+  size="lg"
+/>
                 {!readOnly && (
                   <>
                     <Button
@@ -135,18 +152,34 @@ export function HomeCantiere({
                     >
                       Modifica
                     </Button>
-                    {canCloseSite && onCloseSite && (
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={onCloseSite}
-                        icon={<CheckCircle className="w-4 h-4" />}
-                      >
-                        Termina
-                      </Button>
-                    )}
-                  </>
+                   {canCloseSite && onCloseSite && (
+  <Button
+    variant="danger"
+    size="sm"
+    onClick={() => setShowTerminaDialog(true)}
+    icon={<CheckCircle className="w-4 h-4" />}
+  >
+    Termina
+  </Button>
+)} </>
                 )}
+                {!readOnly && mapStatoFrontend(site.stato) === 'Pianificato' && (
+  <Button
+    variant="secondary"
+    size="sm"
+    onClick={async () => {
+      try {
+        await iniziaLavoriCantiere(Number(site.id));
+        onBack();
+      } catch (err: any) {
+        alert(err.message);
+      }
+    }}
+    icon={<CheckCircle className="w-4 h-4" />}
+  > 
+    Avvia
+  </Button>
+)}
               </div>
             </div>
           </CardBody>
@@ -278,7 +311,25 @@ export function HomeCantiere({
             </CardBody>
           </Card>
         )}
+        <ConfirmDialog
+  isOpen={showTerminaDialog}
+  title="Termina Cantiere"
+  message={`Sei sicuro di voler terminare "${site.nome}"? La data di fine effettiva sarà impostata ad oggi. Questa operazione è irreversibile.`}
+  confirmLabel="Termina"
+  onConfirm={async () => {
+    setShowTerminaDialog(false);
+    try {
+      await terminaCantiere(Number(site.id));
+      onBack();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }}
+  onCancel={() => setShowTerminaDialog(false)}
+  variant="danger"
+/>
       </main>
     </div>
-  );
+  )
+  ;
 }

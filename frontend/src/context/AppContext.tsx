@@ -76,7 +76,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setConstructionSites((prevSites) =>
       prevSites.map((site) => {
         if (site.stato === 'In Corso') {
-          const estimatedEnd = new Date(site.dataFineStimata);
+          const estimatedEnd = new Date(site.dataFinePrevista);
           estimatedEnd.setHours(0, 0, 0, 0);
 
           if (today > estimatedEnd) {
@@ -193,7 +193,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const site = constructionSites.find((s) => s.id === siteId);
     if (!site) return false;
 
-    const startDate = new Date(site.dataInizio);
+    const startDate = new Date(site.dataInizioPrevista);
     const deliveryDate = new Date(dataConsegnaEffettiva);
 
     if (deliveryDate <= startDate) {
@@ -203,7 +203,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setConstructionSites(
       constructionSites.map((s) =>
         s.id === siteId
-          ? { ...s, stato: 'Terminato' as const, dataConsegnaEffettiva }
+          ? { ...s, stato: 'Terminato' as const, dataFineEffettiva : dataConsegnaEffettiva }
           : s
       )
     );

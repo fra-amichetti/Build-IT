@@ -14,7 +14,7 @@ export interface User {
 export type SiteStatus = 'Pianificato' | 'In Corso' | 'In Ritardo' | 'Terminato';
 
 export interface ConstructionSite {
-  id: number;                        // Long Java → number TypeScript
+  id: string;
   nome: string;
   indirizzo: string;
   dataInizioPrevista: string;
@@ -22,7 +22,7 @@ export interface ConstructionSite {
   dataFinePrevista: string;
   dataFineEffettiva?: string;
   emailCliente?: string;
-  stato: string;                     // stringa libera: "PIANIFICATO", "IN_CORSO", ecc.
+  stato: SiteStatus;
 }
 
 // Work Phase Types

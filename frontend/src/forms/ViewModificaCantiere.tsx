@@ -4,7 +4,7 @@ import { Header } from '../components/shared/Header';
 import { Button } from '../components/shared/Button';
 import { Input } from '../components/shared/Input';
 import { Card, CardBody } from '../components/shared/Card';
-import { useApp } from '../context/AppContext';
+import { modificaCantiere } from '../services/api';
 import { ConstructionSite } from '../types';
 
 interface ViewModificaCantiereProps {
@@ -14,7 +14,7 @@ interface ViewModificaCantiereProps {
 }
 
 export function ViewModificaCantiere({ site, onBack, onSuccess }: ViewModificaCantiereProps) {
-  const { updateConstructionSite } = useApp();
+
   const [formData, setFormData] = useState({
     nome: site.nome,
     indirizzo: site.indirizzo,
@@ -43,22 +43,24 @@ export function ViewModificaCantiere({ site, onBack, onSuccess }: ViewModificaCa
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  setIsLoading(true);
 
-    updateConstructionSite(site.id, {
+  try {
+    await modificaCantiere(Number(site.id), {
       nome: formData.nome,
       indirizzo: formData.indirizzo,
       emailCliente: formData.emailCliente || undefined,
     });
-
-    setIsLoading(false);
     onSuccess();
-  };
+  } catch (err: any) {
+    setErrors({ nome: err.message || 'Errore durante la modifica' });
+  }
 
+  setIsLoading(false);
+};
   return (
     <div className="min-h-screen bg-gray-50">
       <Header showMenuButton onMenuClick={onBack} />
@@ -87,7 +89,7 @@ export function ViewModificaCantiere({ site, onBack, onSuccess }: ViewModificaCa
             <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-sm text-gray-600">
                 <strong>Data Fine Stimata:</strong>{' '}
-                {new Date(site.dataFineStimata).toLocaleDateString('it-IT', {
+                {new Date(site.dataFinePrevista).toLocaleDateString('it-IT', {
                   day: '2-digit',
                   month: 'long',
                   year: 'numeric',

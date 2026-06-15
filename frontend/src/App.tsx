@@ -21,6 +21,7 @@ import { ViewTerminaFaseCantiere } from './forms/ViewTerminaFaseCantiere';
 import { ViewAggiungiDocumentoTecnico } from './forms/ViewAggiungiDocumentoTecnico';
 import { ViewAggiungiDocumentoContabile } from './forms/ViewAggiungiDocumentoContabile';
 import { ConstructionSite, WorkPhase } from './types';
+import { terminaCantiere, getDettagliCantiere } from './services/api';
 
 type Screen =
   | 'auth'
@@ -141,8 +142,17 @@ const isReadOnly = loggedUser?.ruolo === 'CLIENTE';
             site={selectedSite}
             onBack={() => setCurrentScreen('cantieri')}
             onEditSite={canEdit && selectedSite.stato !== 'Terminato' ? () => setCurrentScreen('modificaCantiere') : undefined}
-            onCloseSite={canEdit && selectedSite.stato !== 'Terminato' ? () => setCurrentScreen('terminaCantiere') : undefined}
-            onAddPhase={canEdit && selectedSite.stato !== 'Terminato' ? () => setCurrentScreen('aggiungiFase') : undefined}
+         onCloseSite={canEdit && selectedSite.stato !== 'Terminato' ? async () => {
+  const confermato = window.confirm(`Sei sicuro di voler terminare "${selectedSite.nome}"? La data di fine sarà impostata ad oggi. Operazione irreversibile.`);
+  if (confermato) {
+    try {
+      await terminaCantiere(Number(selectedSite.id));
+      setCurrentScreen('cantieri');
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+} : undefined}   onAddPhase={canEdit && selectedSite.stato !== 'Terminato' ? () => setCurrentScreen('aggiungiFase') : undefined}
             onSelectPhase={handleSelectPhase}
             onOpenTechnicalDocs={() => setCurrentScreen('documentiTecnici')}
             onOpenAccountingDocs={() => setCurrentScreen('documentiContabili')}
@@ -159,17 +169,18 @@ const isReadOnly = loggedUser?.ruolo === 'CLIENTE';
         );
 
       case 'modificaCantiere':
-        if (!selectedSite) return null;
-        return (
-          <ViewModificaCantiere
-            site={selectedSite}
-            onBack={() => setCurrentScreen('cantiere')}
-            onSuccess={() => {
-              setSelectedSite({ ...selectedSite });
-              setCurrentScreen('cantiere');
-            }}
-          />
-        );
+  if (!selectedSite) return null;
+  return (
+    <ViewModificaCantiere
+      site={selectedSite}
+      onBack={() => setCurrentScreen('cantiere')}
+      onSuccess={async () => {
+        const aggiornato = await getDettagliCantiere(Number(selectedSite.id));
+        setSelectedSite(aggiornato);
+        setCurrentScreen('cantiere');
+      }}
+    />
+  );
 
       case 'terminaCantiere':
         if (!selectedSite) return null;

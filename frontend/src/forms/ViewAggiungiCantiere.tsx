@@ -17,7 +17,7 @@ export function ViewAggiungiCantiere({ onBack, onSuccess }: ViewAggiungiCantiere
   const [formData, setFormData] = useState({
     nome: '',
     indirizzo: '',
-    dataInizio: '',
+    dataInizioStimata: '',
     dataFineStimata: '',
     emailCliente: '',
   });
@@ -35,13 +35,13 @@ export function ViewAggiungiCantiere({ onBack, onSuccess }: ViewAggiungiCantiere
       newErrors.indirizzo = "L'indirizzo è obbligatorio";
     }
 
-    if (!formData.dataInizio) {
+    if (!formData.dataInizioStimata) {
       newErrors.dataInizio = 'La data di inizio è obbligatoria';
     }
 
     if (!formData.dataFineStimata) {
       newErrors.dataFineStimata = 'La data di fine stimata è obbligatoria';
-    } else if (formData.dataInizio && new Date(formData.dataFineStimata) <= new Date(formData.dataInizio)) {
+    } else if (formData.dataInizioStimata && new Date(formData.dataFineStimata) <= new Date(formData.dataInizioStimata)) {
       newErrors.dataFineStimata = 'La data di fine deve essere successiva alla data di inizio';
     }
 
@@ -62,7 +62,7 @@ export function ViewAggiungiCantiere({ onBack, onSuccess }: ViewAggiungiCantiere
       await aggiungiCantiere(
         formData.nome,
         formData.indirizzo,
-        formData.dataInizio,
+        formData.dataInizioStimata,
         formData.dataFineStimata,
         formData.emailCliente || undefined
       );
@@ -124,14 +124,14 @@ export function ViewAggiungiCantiere({ onBack, onSuccess }: ViewAggiungiCantiere
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <Input
-                  label="Data Inizio"
-                  type="date"
-                  value={formData.dataInizio}
-                  onChange={(e) => setFormData({ ...formData, dataInizio: e.target.value })}
-                  error={errors.dataInizio}
-                  required
-                />
+              <Input
+  label="Data Inizio Prevista"
+  type="date"
+  value={formData.dataInizioStimata}
+  onChange={(e) => setFormData({ ...formData, dataInizioStimata: e.target.value })}
+  error={errors.dataInizio}
+  required
+/>
 
                 <Input
                   label="Data Fine Stimata"
