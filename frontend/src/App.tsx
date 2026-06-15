@@ -84,11 +84,10 @@ const [loggedUser, setLoggedUser] = useState<any>(null);
   // Cambia a false per richiedere autenticazione
   const DEV_MODE = true;
 
-  const isAdmin = currentUser?.role === 'Amministratore';
-  const isDipendente = currentUser?.role === 'Dipendente';
-  const canEdit = isAdmin || isDipendente;
-  const isReadOnly = currentUser?.role === 'Cliente';
-
+  const isAdmin = loggedUser?.ruolo === 'AMMINISTRATORE';
+const isDipendente = loggedUser?.ruolo === 'DIPENDENTE';
+const canEdit = isAdmin || isDipendente;
+const isReadOnly = loggedUser?.ruolo === 'CLIENTE';
   // Render current screen
   const renderScreen = () => {
     switch (currentScreen) {
@@ -103,12 +102,13 @@ const [loggedUser, setLoggedUser] = useState<any>(null);
       case 'register':
         return <ViewRegistrazione onBack={() => setCurrentScreen('auth')} />;
 
-      case 'homeAdmin':
-        return (
-          <HomeAmministratore
-            onNavigate={() => setCurrentScreen('cantieri')}
-          />
-        );
+    case 'homeAdmin':
+  return (
+    <HomeAmministratore
+      onNavigate={() => setCurrentScreen('cantieri')}
+      nomeUtente={loggedUser?.nome}
+    />
+  );
 
       case 'homeCliente':
         return (

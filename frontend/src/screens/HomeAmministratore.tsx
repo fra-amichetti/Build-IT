@@ -10,9 +10,10 @@ import { ViewMostraStatistiche } from './ViewMostraStatistiche';
 
 interface HomeAmministratoreProps {
   onNavigate: (screen: 'cantieri') => void;
+  nomeUtente?: string;
 }
 
-export function HomeAmministratore({ onNavigate }: HomeAmministratoreProps) {
+export function HomeAmministratore({ onNavigate, nomeUtente }: HomeAmministratoreProps) {
   const { currentUser, constructionSites, teams } = useApp();
   const [activeTab, setActiveTab] = useState<'overview' | 'dipendenti' | 'squadre' | 'statistiche'>('overview');
 
@@ -32,7 +33,7 @@ export function HomeAmministratore({ onNavigate }: HomeAmministratoreProps) {
                 <Shield className="w-7 h-7" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Benvenuto, {currentUser?.nome}!</h1>
+                <h1 className="text-2xl font-bold">Benvenuto, {nomeUtente}!</h1>
                 <p className="text-red-100">Pannello Amministratore</p>
               </div>
             </div>
@@ -143,17 +144,17 @@ export function HomeAmministratore({ onNavigate }: HomeAmministratoreProps) {
 
         {/* Dipendenti Tab - Embedded Component */}
         {activeTab === 'dipendenti' && (
-          <HomeGestioneDipendenti onBack={() => setActiveTab('overview')} />
+          <HomeGestioneDipendenti onBack={() => setActiveTab('overview')} embedded />
         )}
 
         {/* Squadre Tab - Embedded Component */}
         {activeTab === 'squadre' && (
-          <HomeGestioneSquadre onBack={() => setActiveTab('overview')} />
+         <HomeGestioneSquadre onBack={() => setActiveTab('overview')} embedded />
         )}
 
         {/* Statistiche Tab - Embedded Component */}
         {activeTab === 'statistiche' && (
-          <ViewMostraStatistiche onBack={() => setActiveTab('overview')} />
+          <ViewMostraStatistiche onBack={() => setActiveTab('overview')} embedded />
         )}
       </main>
     </div>

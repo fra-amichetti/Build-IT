@@ -11,6 +11,7 @@ import { Team, TeamSpecialization } from '../types';
 
 interface HomeGestioneSquadreProps {
   onBack: () => void;
+  embedded?: boolean;
 }
 
 const specializations: { value: TeamSpecialization; label: string }[] = [
@@ -20,7 +21,7 @@ const specializations: { value: TeamSpecialization; label: string }[] = [
   { value: 'Carpentieri', label: 'Carpentieri' },
 ];
 
-export function HomeGestioneSquadre({ onBack }: HomeGestioneSquadreProps) {
+export function HomeGestioneSquadre({ onBack, embedded }: HomeGestioneSquadreProps) {
   const { teams, addTeam, deleteTeam, workPhases } = useApp();
   const [showAddForm, setShowAddForm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -98,16 +99,16 @@ export function HomeGestioneSquadre({ onBack }: HomeGestioneSquadreProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header showMenuButton onMenuClick={onBack} />
+      {!embedded && <Header showMenuButton onMenuClick={onBack} />}
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <button
+       {!embedded && ( <button
           onClick={onBack}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Torna alla home</span>
-        </button>
+        </button>)}
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
