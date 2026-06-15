@@ -4,7 +4,8 @@ import { Header } from '../components/shared/Header';
 import { Button } from '../components/shared/Button';
 import { Input } from '../components/shared/Input';
 import { Card, CardBody } from '../components/shared/Card';
-import { useApp } from '../context/AppContext';
+// import { useApp } from '../context/AppContext';
+import { aggiungiCantiere } from '../services/api';
 
 interface ViewAggiungiCantiereProps {
   onBack: () => void;
@@ -12,7 +13,7 @@ interface ViewAggiungiCantiereProps {
 }
 
 export function ViewAggiungiCantiere({ onBack, onSuccess }: ViewAggiungiCantiereProps) {
-  const { addConstructionSite } = useApp();
+  // const { addConstructionSite } = useApp();
   const [formData, setFormData] = useState({
     nome: '',
     indirizzo: '',
@@ -55,21 +56,22 @@ export function ViewAggiungiCantiere({ onBack, onSuccess }: ViewAggiungiCantiere
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
+  
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    addConstructionSite({
-      nome: formData.nome,
-      indirizzo: formData.indirizzo,
-      dataInizio: formData.dataInizio,
-      dataFineStimata: formData.dataFineStimata,
-      emailCliente: formData.emailCliente || undefined,
-      stato: 'Pianificato',
-    });
-
-    setIsLoading(false);
-    onSuccess();
+    try {
+      await aggiungiCantiere(
+        formData.nome,
+        formData.indirizzo,
+        formData.dataInizio,
+        formData.dataFineStimata,
+        formData.emailCliente || undefined
+      );
+      onSuccess();
+    } catch (err: any) {
+      setErrors({ nome: err.message || 'Errore nella creazione del cantiere' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
