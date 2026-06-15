@@ -67,8 +67,13 @@ export function ViewAggiungiCantiere({ onBack, onSuccess }: ViewAggiungiCantiere
         formData.emailCliente || undefined
       );
       onSuccess();
-    } catch (err: any) {
-      setErrors({ nome: err.message || 'Errore nella creazione del cantiere' });
+    } catch (err) { // Rimosso ': any'
+      // Verifichiamo in modo sicuro il tipo di errore
+      if (err instanceof Error) {
+        setErrors({ nome: err.message });
+      } else {
+        setErrors({ nome: 'Errore nella creazione del cantiere' });
+      }
     } finally {
       setIsLoading(false);
     }

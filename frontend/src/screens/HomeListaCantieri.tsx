@@ -75,7 +75,12 @@ export function HomeListaCantieri({
           getStatoPriority(a.stato) - getStatoPriority(b.stato)
       );
       setCantieri(ordinati);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError('Errore nel caricamento dei cantieri: ' + err.message);
+      } else {
+        setError('Errore nel caricamento dei cantieri');
+      }
       setError('Errore nel caricamento dei cantieri');
     } finally {
       setIsLoading(false);
@@ -189,7 +194,7 @@ export function HomeListaCantieri({
                     <div className="flex items-center gap-3">
                       <StatusBadge
                         status={getStatoLabel(site.stato)}
-                        variant={getStatoVariant(site.stato) as any}
+                        variant={getStatoVariant(site.stato) as 'blue' | 'red' | 'green' | 'gray'}
                         size="lg"
                       />
                     </div>
