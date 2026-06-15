@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.buildit.backend.dominio.Cantiere;
 import com.buildit.backend.repository.CantiereRepository;
 
-// import com.buildit.backend.dominio.StatoCantiere;
+import com.buildit.backend.dominio.StatoCantiere;
 
 @RestController
 @RequestMapping("/api/cantieri")
@@ -79,8 +79,8 @@ public class ListaCantieriController {
         cantiere.setDataFinePrevista(dataFine);
         cantiere.setEmailCliente(emailCliente);
 
-        // cantiere.setStato(StatoCantiere.PIANIFICATO);
-        cantiere.setStato("PIANIFICATO");
+        cantiere.setStato(StatoCantiere.PIANIFICATO);
+        
 
         Cantiere salvato = cantiereRepository.save(cantiere);
         return ResponseEntity.ok(salvato);
@@ -93,8 +93,8 @@ public class ListaCantieriController {
         //List<Cantiere> inCorso = cantiereRepository.findByStato(StatoCantiere.IN_CORSO);
         for (Cantiere c : inCorso) {
             if (c.verificaRitardo()) {
-                // c.setStato(StatoCantiere.IN_RITARDO);
-                c.setStato("IN_RITARDO");
+                c.setStato(StatoCantiere.IN_RITARDO);
+               
                 cantiereRepository.save(c);
             }
         }

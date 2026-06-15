@@ -2,6 +2,7 @@ package com.buildit.backend.config;
 
 import com.buildit.backend.dominio.Amministratore;
 import com.buildit.backend.dominio.Cantiere;
+import com.buildit.backend.dominio.StatoCantiere;
 import com.buildit.backend.repository.UtenteRepository;
 
 import java.time.LocalDate;
@@ -39,7 +40,7 @@ if(cantiereRepository.findAll().isEmpty()){
     c1.setDataInizioPrevista(LocalDate.of(2025, 1, 10));
     c1.setDataFinePrevista(LocalDate.of(2025, 12, 31));
     c1.setEmailCliente("mario.conti@email.it");
-    c1.setStato("IN_CORSO");
+   c1.setStato(StatoCantiere.IN_CORSO);
     c1.setDataInizioEffettiva(LocalDate.of(2025, 1, 15));
     cantiereRepository.save(c1);
 
@@ -49,7 +50,7 @@ if(cantiereRepository.findAll().isEmpty()){
     c2.setDataInizioPrevista(LocalDate.of(2025, 3, 1));
     c2.setDataFinePrevista(LocalDate.of(2025, 6, 30));
     c2.setEmailCliente("luigi.ferrari@email.it");
-    c2.setStato("IN_RITARDO");
+   c2.setStato(StatoCantiere.IN_RITARDO);
     c2.setDataInizioEffettiva(LocalDate.of(2025, 3, 5));
     cantiereRepository.save(c2);
 
@@ -59,7 +60,7 @@ if(cantiereRepository.findAll().isEmpty()){
     c3.setDataInizioPrevista(LocalDate.of(2025, 9, 1));
     c3.setDataFinePrevista(LocalDate.of(2026, 6, 30));
     c3.setEmailCliente("mario.conti@email.it");
-    c3.setStato("PIANIFICATO");
+c3.setStato(StatoCantiere.PIANIFICATO);
     cantiereRepository.save(c3);
 
     Cantiere c4 = new Cantiere();
@@ -68,7 +69,7 @@ if(cantiereRepository.findAll().isEmpty()){
     c4.setDataInizioPrevista(LocalDate.of(2024, 1, 1));
     c4.setDataFinePrevista(LocalDate.of(2024, 12, 31));
     c4.setEmailCliente("anna.bianchi@email.it");
-    c4.setStato("TERMINATO");
+   c4.setStato(StatoCantiere.TERMINATO);
     c4.setDataInizioEffettiva(LocalDate.of(2024, 1, 10));
     c4.setDataFineEffettiva(LocalDate.of(2024, 12, 20));
     cantiereRepository.save(c4);

@@ -4,6 +4,8 @@ import java.time.LocalDate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -35,9 +37,11 @@ public class Cantiere {
 
     private String emailCliente;
 
-    @Column(nullable = false)
-    // @Enumerated(EnumType.STRING)
-    private String stato;
+   
+
+     @Enumerated(EnumType.STRING)
+   @Column(nullable = false)
+private StatoCantiere stato;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -63,32 +67,25 @@ public class Cantiere {
     public String getEmailCliente() { return emailCliente; }
     public void setEmailCliente(String emailCliente) { this.emailCliente = emailCliente; }
 
-    /*
+    
     // 2. Aggiorna Getter e Setter
     public StatoCantiere getStato() { return stato; }
     public void setStato(StatoCantiere stato) { this.stato = stato; }
 
-    // 3. Aggiorna la logica di business usando l'Enum (puoi usare == invece di .equals)
-    public boolean verificaRitardo() {
-        if (this.stato != StatoCantiere.IN_CORSO) return false;
-        return LocalDate.now().isAfter(this.dataFinePrevista);
-    }
-    */
-    public String getStato() { return stato; }
-    public void setStato(String stato) { this.stato = stato; }
-
-    public boolean verificaRitardo() {
-        if (!"IN_CORSO".equals(this.stato)) return false;
-        return LocalDate.now().isAfter(this.dataFinePrevista);
-    }
-
+   
+   
     public void iniziaLavori() {
-        this.stato = "IN_CORSO";
-        this.dataInizioEffettiva = LocalDate.now();
-    }
+    this.stato = StatoCantiere.IN_CORSO;
+    this.dataInizioEffettiva = LocalDate.now();
+}
 
-    public void terminaCantiere() {
-        this.stato = "TERMINATO";
-        this.dataFineEffettiva = LocalDate.now();
-    }
+public void terminaCantiere() {
+    this.stato = StatoCantiere.TERMINATO;
+    this.dataFineEffettiva = LocalDate.now();
+}
+
+public boolean verificaRitardo() {
+    if (StatoCantiere.IN_CORSO != this.stato) return false;
+    return LocalDate.now().isAfter(this.dataFinePrevista);
+}
 }

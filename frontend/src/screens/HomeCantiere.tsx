@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import {
   MapPin, Calendar, ArrowLeft, Edit, CheckCircle, FileText, Receipt,
   Plus, Clock, Mail, AlertCircle, ChevronRight, Building2, Users
@@ -11,6 +12,7 @@ import { ConfirmDialog } from '../components/shared/ConfirmDialog';
 import { useApp } from '../context/AppContext';
 import { ConstructionSite, WorkPhase } from '../types';
 import { iniziaLavoriCantiere, terminaCantiere } from '../services/api';
+import { getFasi } from '../services/api';
 
 type TabType = 'fasi' | 'tecnici' | 'contabili';
 
@@ -37,10 +39,13 @@ export function HomeCantiere({
   onOpenAccountingDocs,
   readOnly = false,
 }: HomeCantiereProps) {
-  const { getPhasesBySite, getTeamById } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('fasi');
+const { getTeamById } = useApp();
+const [phases, setPhases] = useState<any[]>([]);
 
-  const phases = getPhasesBySite(site.id);
+useEffect(() => {
+  getFasi(Number(site.id)).then(setPhases).catch(console.error);
+}, [site.id]);
 const [showTerminaDialog, setShowTerminaDialog] = useState(false);
   const formatDate = (dateStr?: string) => {
   if (!dateStr) return '—';
@@ -59,7 +64,7 @@ const [showTerminaDialog, setShowTerminaDialog] = useState(false);
   ];
 
   // Check if site can be closed (not already terminated)
-  const canCloseSite = site.stato !== 'Terminato';
+  const canCloseSite = site.stato !== 'TERMINATO';
 function mapStatoFrontend(stato: string): string {
   switch (stato) {
     case 'PIANIFICATO': return 'Pianificato';
@@ -147,7 +152,7 @@ function mapStatoFrontend(stato: string): string {
                       variant="secondary"
                       size="sm"
                       onClick={onEditSite}
-                      disabled={site.stato === 'Terminato'}
+                      disabled={site.stato === 'TERMINATO'}
                       icon={<Edit className="w-4 h-4" />}
                     >
                       Modifica
@@ -163,7 +168,7 @@ function mapStatoFrontend(stato: string): string {
   </Button>
 )} </>
                 )}
-                {!readOnly && mapStatoFrontend(site.stato) === 'Pianificato' && (
+             {!readOnly && onAddPhase && site.stato !== 'TERMINATO' && (
   <Button
     variant="secondary"
     size="sm"
@@ -226,9 +231,9 @@ function mapStatoFrontend(stato: string): string {
             ) : (
               <div className="space-y-3">
                 {phases
-                  .sort((a, b) => new Date(a.dataInizio).getTime() - new Date(b.dataInizio).getTime())
+                 .sort((a, b) => new Date(a.dataInizioPrevista).getTime() - new Date(b.dataInizioPrevista).getTime())
                   .map((phase, index) => {
-                  const team = getTeamById(phase.squadraId);
+                  const team = phase.squadra;
                   return (
                     <Card
                       key={phase.id}
@@ -245,8 +250,7 @@ function mapStatoFrontend(stato: string): string {
                               <h4 className="font-medium text-gray-900">{phase.nome}</h4>
                               <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
                                 <span>
-                                  {formatDate(phase.dataInizio)} - {formatDate(phase.dataFineEffettiva || phase.dataFinePrevista)}
-                                </span>
+                                 {formatDate(phase.dataInizioPrevista)} - {formatDate(phase.dataFineEffettiva || phase.dataFinePrevista)} </span>
                                 {team && (
                                   <div className="flex items-center gap-1">
                                     <Users className="w-4 h-4" />

@@ -11,8 +11,7 @@ export interface User {
 }
 
 // Construction Site Types
-export type SiteStatus = 'Pianificato' | 'In Corso' | 'In Ritardo' | 'Terminato';
-
+export type SiteStatus = 'Pianificato' | 'In Corso' | 'In Ritardo' | 'Terminato' | 'PIANIFICATO' | 'IN_CORSO' | 'IN_RITARDO' | 'TERMINATO';
 export interface ConstructionSite {
   id: string;
   nome: string;

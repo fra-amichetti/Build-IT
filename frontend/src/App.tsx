@@ -141,8 +141,8 @@ const isReadOnly = loggedUser?.ruolo === 'CLIENTE';
           <HomeCantiere
             site={selectedSite}
             onBack={() => setCurrentScreen('cantieri')}
-            onEditSite={canEdit && selectedSite.stato !== 'Terminato' ? () => setCurrentScreen('modificaCantiere') : undefined}
-         onCloseSite={canEdit && selectedSite.stato !== 'Terminato' ? async () => {
+         onEditSite={canEdit && selectedSite.stato !== 'TERMINATO' ? () => setCurrentScreen('modificaCantiere') : undefined}
+onCloseSite={canEdit && selectedSite.stato !== 'TERMINATO' ? async () => {
   const confermato = window.confirm(`Sei sicuro di voler terminare "${selectedSite.nome}"? La data di fine sarà impostata ad oggi. Operazione irreversibile.`);
   if (confermato) {
     try {
@@ -152,11 +152,12 @@ const isReadOnly = loggedUser?.ruolo === 'CLIENTE';
       alert(err.message);
     }
   }
-} : undefined}   onAddPhase={canEdit && selectedSite.stato !== 'Terminato' ? () => setCurrentScreen('aggiungiFase') : undefined}
-            onSelectPhase={handleSelectPhase}
+} : undefined}  
+onAddPhase={canEdit && selectedSite.stato !== 'TERMINATO' ? () => setCurrentScreen('aggiungiFase') : undefined}
+onSelectPhase={handleSelectPhase}
             onOpenTechnicalDocs={() => setCurrentScreen('documentiTecnici')}
             onOpenAccountingDocs={() => setCurrentScreen('documentiContabili')}
-            readOnly={isReadOnly || selectedSite.stato === 'Terminato'}
+          readOnly={isReadOnly || selectedSite.stato === 'TERMINATO'}
           />
         );
 

@@ -143,3 +143,58 @@ export async function terminaCantiere(id: number) {
   if (!response.ok) throw new Error(data.errore || 'Errore nella chiusura del cantiere');
   return data;
 }
+
+// ── FASI ──────────────────────────────────────────────
+
+export async function getFasi(cantiereId: number) {
+  const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/fasi`);
+  const data = await response.json();
+  if (!response.ok) throw new Error('Errore nel caricamento delle fasi');
+  return data;
+}
+
+export async function aggiungiFase(
+  cantiereId: number,
+  nome: string,
+  descrizione: string,
+  dataInizioPrevista: string,
+  dataFinePrevista: string,
+  squadraId?: string
+) {
+  const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/fasi`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome, descrizione, dataInizioPrevista, dataFinePrevista, squadraId }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore nella creazione della fase');
+  return data;
+}
+
+export async function modificaFase(
+  id: number,
+  updates: { descrizione?: string; dataFinePrevista?: string; squadraId?: string }
+) {
+  const response = await fetch(`${BASE_URL}/fasi/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore nella modifica della fase');
+  return data;
+}
+
+export async function avviaFase(id: number) {
+  const response = await fetch(`${BASE_URL}/fasi/${id}/avvia`, { method: 'PUT' });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore nell\'avvio della fase');
+  return data;
+}
+
+export async function terminaFase(id: number) {
+  const response = await fetch(`${BASE_URL}/fasi/${id}/termina`, { method: 'PUT' });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore nella chiusura della fase');
+  return data;
+}
