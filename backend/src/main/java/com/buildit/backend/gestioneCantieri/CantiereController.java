@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.buildit.backend.dominio.Cantiere;
 import com.buildit.backend.repository.CantiereRepository;
 
+// import com.buildit.backend.dominio.StatoCantiere;
+
 @RestController
 @RequestMapping("/api/cantieri")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -47,6 +49,12 @@ public class CantiereController {
 
         Cantiere cantiere = opt.get();
 
+        /*
+        if (cantiere.getStato() == StatoCantiere.TERMINATO) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("errore", "Un cantiere terminato non può essere modificato"));
+        }
+        */
         if ("TERMINATO".equals(cantiere.getStato())) {
             return ResponseEntity.badRequest()
                 .body(Map.of("errore", "Un cantiere terminato non può essere modificato"));
@@ -76,6 +84,12 @@ public class CantiereController {
 
         Cantiere cantiere = opt.get();
 
+        /*
+        if (cantiere.getStato() != StatoCantiere.PIANIFICATO) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("errore", "Solo un cantiere pianificato può essere avviato"));
+        }
+        */
         if (!"PIANIFICATO".equals(cantiere.getStato())) {
             return ResponseEntity.badRequest()
                 .body(Map.of("errore", "Solo un cantiere pianificato può essere avviato"));
@@ -96,6 +110,16 @@ public class CantiereController {
 
         Cantiere cantiere = opt.get();
 
+        /*
+        if (cantiere.getStato() == StatoCantiere.TERMINATO) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("errore", "Il cantiere è già terminato"));
+        }
+        if (cantiere.getStato() == StatoCantiere.PIANIFICATO) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("errore", "Un cantiere pianificato non può essere terminato direttamente"));
+        }
+        */
         if ("TERMINATO".equals(cantiere.getStato())) {
             return ResponseEntity.badRequest()
                 .body(Map.of("errore", "Il cantiere è già terminato"));

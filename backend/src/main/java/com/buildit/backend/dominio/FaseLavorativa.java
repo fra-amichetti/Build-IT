@@ -4,14 +4,18 @@ import java.time.LocalDate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "cantieri")
-public class Cantiere {
+@Table(name = "fasi_lavorative")
+public class FaseLavorativa {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,8 +24,7 @@ public class Cantiere {
     @Column(nullable = false)
     private String nome;
 
-    @Column(nullable = false)
-    private String indirizzo;
+    private String descrizione;
 
     @Column(nullable = false)
     private LocalDate dataInizioPrevista;
@@ -33,11 +36,17 @@ public class Cantiere {
 
     private LocalDate dataFineEffettiva;
 
-    private String emailCliente;
-
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    // @Enumerated(EnumType.STRING)
-    private String stato;
+    private StatoFase stato;
+
+    @ManyToOne
+    @JoinColumn(name = "cantiere_id", nullable = false)
+    private Cantiere cantiere;
+
+    @ManyToOne
+    @JoinColumn(name = "squadra_id")
+    private Squadra squadra;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -45,8 +54,8 @@ public class Cantiere {
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
 
-    public String getIndirizzo() { return indirizzo; }
-    public void setIndirizzo(String indirizzo) { this.indirizzo = indirizzo; }
+    public String getDescrizione() { return descrizione; }
+    public void setDescrizione(String descrizione) { this.descrizione = descrizione; }
 
     public LocalDate getDataInizioPrevista() { return dataInizioPrevista; }
     public void setDataInizioPrevista(LocalDate d) { this.dataInizioPrevista = d; }
@@ -60,35 +69,22 @@ public class Cantiere {
     public LocalDate getDataFineEffettiva() { return dataFineEffettiva; }
     public void setDataFineEffettiva(LocalDate d) { this.dataFineEffettiva = d; }
 
-    public String getEmailCliente() { return emailCliente; }
-    public void setEmailCliente(String emailCliente) { this.emailCliente = emailCliente; }
+    public StatoFase getStato() { return stato; }
+    public void setStato(StatoFase stato) { this.stato = stato; }
 
-    /*
-    // 2. Aggiorna Getter e Setter
-    public StatoCantiere getStato() { return stato; }
-    public void setStato(StatoCantiere stato) { this.stato = stato; }
+    public Cantiere getCantiere() { return cantiere; }
+    public void setCantiere(Cantiere cantiere) { this.cantiere = cantiere; }
 
-    // 3. Aggiorna la logica di business usando l'Enum (puoi usare == invece di .equals)
-    public boolean verificaRitardo() {
-        if (this.stato != StatoCantiere.IN_CORSO) return false;
-        return LocalDate.now().isAfter(this.dataFinePrevista);
-    }
-    */
-    public String getStato() { return stato; }
-    public void setStato(String stato) { this.stato = stato; }
+    public Squadra getSquadra() { return squadra; }
+    public void setSquadra(Squadra squadra) { this.squadra = squadra; }
 
-    public boolean verificaRitardo() {
-        if (!"IN_CORSO".equals(this.stato)) return false;
-        return LocalDate.now().isAfter(this.dataFinePrevista);
-    }
-
-    public void iniziaLavori() {
-        this.stato = "IN_CORSO";
+    public void avviaFase() {
+        this.stato = StatoFase.IN_CORSO;
         this.dataInizioEffettiva = LocalDate.now();
     }
 
-    public void terminaCantiere() {
-        this.stato = "TERMINATO";
+    public void terminaFase() {
+        this.stato = StatoFase.TERMINATA;
         this.dataFineEffettiva = LocalDate.now();
     }
 }
