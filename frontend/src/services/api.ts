@@ -205,3 +205,34 @@ export async function getDettagliFase(id: number) {
   if (!response.ok) throw new Error('Fase non trovata');
   return data;
 }
+// ── SQUADRE ──────────────────────────────────────────────
+
+export async function getSquadre() {
+  const response = await fetch(`${BASE_URL}/squadre`);
+  const data = await response.json();
+  if (!response.ok) throw new Error('Errore nel caricamento delle squadre');
+  return data;
+}
+
+export async function aggiungiSquadra(
+  nome: string,
+  specializzazione: string,
+  numeroComponenti: number,
+  nomeReferente: string
+) {
+  const response = await fetch(`${BASE_URL}/squadre`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome, specializzazione, numeroComponenti: numeroComponenti.toString(), nomeReferente }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore durante l\'aggiunta della squadra');
+  return data;
+}
+
+export async function eliminaSquadra(id: number) {
+  const response = await fetch(`${BASE_URL}/squadre/${id}`, { method: 'DELETE' });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore durante l\'eliminazione della squadra');
+  return data;
+}

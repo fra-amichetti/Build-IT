@@ -12,7 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @Entity
 @Table(name = "fasi_lavorative")
 public class FaseLavorativa {
@@ -39,15 +39,16 @@ public class FaseLavorativa {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StatoFase stato;
+@ManyToOne
+@JoinColumn(name = "cantiere_id", nullable = false)
+@JsonIgnoreProperties({"fasiLavorative", "hibernateLazyInitializer"})
 
-    @ManyToOne
-    @JoinColumn(name = "cantiere_id", nullable = false)
     private Cantiere cantiere;
 
-    @ManyToOne
-    @JoinColumn(name = "squadra_id")
-    private Squadra squadra;
-
+  @ManyToOne
+@JoinColumn(name = "squadra_id")
+@JsonIgnoreProperties({"fasiDelCantiere", "hibernateLazyInitializer"})
+private Squadra squadra;
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

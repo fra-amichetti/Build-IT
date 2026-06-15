@@ -18,6 +18,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.buildit.backend.dominio.FaseLavorativa;
 import com.buildit.backend.dominio.StatoFase;
 import com.buildit.backend.repository.FaseLavorativaRepository;
+import com.buildit.backend.dominio.Squadra;
+import com.buildit.backend.dominio.Specializzazione;
+import com.buildit.backend.repository.SquadraRepository;
+
 import java.util.Optional;
 @Configuration
 public class DataLoader {
@@ -26,7 +30,8 @@ public class DataLoader {
  public CommandLineRunner loadData(UtenteRepository utenteRepository,
                                   PasswordEncoder passwordEncoder,
                                   CantiereRepository cantiereRepository,
-                                  FaseLavorativaRepository faseLavorativaRepository) {
+                                  FaseLavorativaRepository faseLavorativaRepository,
+                                  SquadraRepository squadraRepository) {
         return args -> {
             if (!utenteRepository.existsByEmail("admin1@buildit.it")) {
                 Amministratore admin = new Amministratore();
@@ -134,6 +139,37 @@ if (faseLavorativaRepository.findAll().isEmpty()) {
 
         System.out.println("Fasi cantiere 2 create!");
     }
+}// Squadre di test
+if (squadraRepository.findAll().isEmpty()) {
+    Squadra s1 = new Squadra();
+    s1.setNome("Squadra Alpha");
+    s1.setSpecializzazione(Specializzazione.MURATORI);
+    s1.setNumeroComponenti(5);
+    s1.setNomeReferente("Mario Rossi");
+    squadraRepository.save(s1);
+
+    Squadra s2 = new Squadra();
+    s2.setNome("Squadra Beta");
+    s2.setSpecializzazione(Specializzazione.ELETTRICISTI);
+    s2.setNumeroComponenti(3);
+    s2.setNomeReferente("Luigi Bianchi");
+    squadraRepository.save(s2);
+
+    Squadra s3 = new Squadra();
+    s3.setNome("Squadra Gamma");
+    s3.setSpecializzazione(Specializzazione.IDRAULICI);
+    s3.setNumeroComponenti(4);
+    s3.setNomeReferente("Anna Verdi");
+    squadraRepository.save(s3);
+
+    Squadra s4 = new Squadra();
+    s4.setNome("Squadra Delta");
+    s4.setSpecializzazione(Specializzazione.CARPENTIERI);
+    s4.setNumeroComponenti(6);
+    s4.setNomeReferente("Carlo Neri");
+    squadraRepository.save(s4);
+
+    System.out.println("Squadre di test create!");
 }
         };
     }

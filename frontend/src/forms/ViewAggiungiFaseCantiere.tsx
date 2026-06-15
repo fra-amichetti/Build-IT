@@ -28,11 +28,13 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/squadre`)
-      .then(r => r.json())
-      .then(setSquadre)
-      .catch(console.error);
-  }, []);
+  fetch(`${BASE_URL}/squadre`)
+    .then(r => r.json())
+    .then(data => {
+      if (Array.isArray(data)) setSquadre(data);
+    })
+    .catch(console.error);
+}, []);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};

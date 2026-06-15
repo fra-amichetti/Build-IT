@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "squadre")
 public class Squadra {
@@ -25,9 +27,9 @@ public class Squadra {
     @Column(nullable = false)
     private Specializzazione specializzazione;
 
-    @OneToMany(mappedBy = "squadra")
-    private List<FaseLavorativa> fasiDelCantiere;
-
+  @OneToMany(mappedBy = "squadra")
+@JsonIgnoreProperties({"squadra", "cantiere"})
+private List<FaseLavorativa> fasiDelCantiere;
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
