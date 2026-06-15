@@ -55,7 +55,6 @@ export function ViewMostraStatistiche({ onBack, embedded }: ViewMostraStatistich
     <span>Torna alla home</span>
   </button>
 )}
-         
 
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
