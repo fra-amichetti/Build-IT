@@ -89,6 +89,17 @@ const [loggedUser, setLoggedUser] = useState<any>(null);
 const isDipendente = loggedUser?.ruolo === 'DIPENDENTE';
 const canEdit = isAdmin || isDipendente;
 const isReadOnly = loggedUser?.ruolo === 'CLIENTE';
+
+useEffect(() => {
+  const handleHomeEvent = () => {
+    if (isAdmin) setCurrentScreen('homeAdmin');
+    else if (isDipendente) setCurrentScreen('cantieri');
+    else if (isReadOnly) setCurrentScreen('homeCliente');
+  };
+
+  window.addEventListener('tornaAllaHome', handleHomeEvent);
+  return () => window.removeEventListener('tornaAllaHome', handleHomeEvent);
+}, [isAdmin, isDipendente, isReadOnly]);
   // Render current screen
   const renderScreen = () => {
     switch (currentScreen) {

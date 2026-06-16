@@ -23,7 +23,12 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
                 <Menu className="w-6 h-6" />
               </button>
             )}
-            <div className="flex items-center gap-2">
+            
+            {/* AGGIUNGI onClick QUI e la classe cursor-pointer */}
+            <div 
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => window.dispatchEvent(new CustomEvent('tornaAllaHome'))}
+            >
               <img
                 src="/icon-house.png"
                 alt="Build-IT House Icon"
