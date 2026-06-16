@@ -154,12 +154,7 @@ export function HomeAmministratore({ onNavigate, nomeUtente }: HomeAmministrator
               </Card>
             )}
 
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Riepilogo Dashboard</h2>
-              <p className="text-gray-600">
-                Utilizza i pulsanti di navigazione sopra per gestire dipendenti, squadre, visualizzare statistiche o accedere alla lista completa dei cantieri.
-              </p>
-            </div>
+            
           </div>
         )}
 
