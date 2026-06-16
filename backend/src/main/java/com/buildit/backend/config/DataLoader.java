@@ -10,6 +10,9 @@ import com.buildit.backend.repository.UtenteRepository;
 import java.time.LocalDate;
 import com.buildit.backend.dominio.Cantiere;
 import com.buildit.backend.repository.CantiereRepository;
+import com.buildit.backend.repository.DocumentoContabileRepository;
+import com.buildit.backend.repository.DocumentoTecnicoRepository;
+
 import java.time.LocalDate;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -22,16 +25,24 @@ import com.buildit.backend.dominio.Squadra;
 import com.buildit.backend.dominio.Specializzazione;
 import com.buildit.backend.repository.SquadraRepository;
 
+import com.buildit.backend.dominio.DocumentoTecnico;
+import com.buildit.backend.dominio.Fattura;
+import com.buildit.backend.dominio.Preventivo;
+import com.buildit.backend.dominio.StatoFattura;
+import com.buildit.backend.repository.DocumentoTecnicoRepository;
+import com.buildit.backend.repository.DocumentoContabileRepository;
 import java.util.Optional;
 @Configuration
 public class DataLoader {
 
     @Bean
- public CommandLineRunner loadData(UtenteRepository utenteRepository,
+public CommandLineRunner loadData(UtenteRepository utenteRepository,
                                   PasswordEncoder passwordEncoder,
                                   CantiereRepository cantiereRepository,
                                   FaseLavorativaRepository faseLavorativaRepository,
-                                  SquadraRepository squadraRepository) {
+                                  SquadraRepository squadraRepository,
+                                  DocumentoTecnicoRepository documentoTecnicoRepository,
+                                  DocumentoContabileRepository documentoContabileRepository) {
         return args -> {
             if (!utenteRepository.existsByEmail("admin1@buildit.it")) {
                 Amministratore admin = new Amministratore();
@@ -170,6 +181,56 @@ if (squadraRepository.findAll().isEmpty()) {
     squadraRepository.save(s4);
 
     System.out.println("Squadre di test create!");
+}
+// Documenti di test
+if (documentoTecnicoRepository.findAll().isEmpty()) {
+    Optional<Cantiere> c1 = cantiereRepository.findById(1L);
+
+    if (c1.isPresent()) {
+        DocumentoTecnico d1 = new DocumentoTecnico();
+        d1.setNome("Pianta piano terra");
+     d1.setTipologia("pianta");
+        d1.setFileUrl("https://example.com/pianta.pdf");
+        d1.setData(LocalDate.of(2025, 1, 20));
+        d1.setCantiere(c1.get());
+        documentoTecnicoRepository.save(d1);
+
+        DocumentoTecnico d2 = new DocumentoTecnico();
+        d2.setNome("Permesso di costruzione");
+        d2.setTipologia("prospetto");
+        d2.setFileUrl("https://example.com/permesso.pdf");
+        d2.setData(LocalDate.of(2025, 1, 10));
+        d2.setCantiere(c1.get());
+        documentoTecnicoRepository.save(d2);
+
+        Fattura f1 = new Fattura();
+        f1.setNome("Fattura acconto lavori");
+        f1.setImporto(15000.0);
+        f1.setFileUrl("https://example.com/fattura1.pdf");
+        f1.setData(LocalDate.of(2025, 2, 1));
+        f1.setStatoPagamento(StatoFattura.SALDATO);
+        f1.setCantiere(c1.get());
+        documentoContabileRepository.save(f1);
+
+        Fattura f2 = new Fattura();
+        f2.setNome("Fattura SAL 1");
+        f2.setImporto(25000.0);
+        f2.setFileUrl("https://example.com/fattura2.pdf");
+        f2.setData(LocalDate.of(2025, 4, 15));
+        f2.setStatoPagamento(StatoFattura.DA_SALDARE);
+        f2.setCantiere(c1.get());
+        documentoContabileRepository.save(f2);
+
+        Preventivo p1 = new Preventivo();
+        p1.setNome("Preventivo impianto elettrico");
+        p1.setImporto(8000.0);
+        p1.setFileUrl("https://example.com/preventivo1.pdf");
+        p1.setData(LocalDate.of(2025, 1, 5));
+        p1.setCantiere(c1.get());
+        documentoContabileRepository.save(p1);
+
+        System.out.println("Documenti di test creati!");
+    }
 }
         };
     }

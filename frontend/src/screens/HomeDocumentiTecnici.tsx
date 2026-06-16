@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, FileText, Download, Trash2, Calendar, Tag, FolderOpen } from 'lucide-react';
 import { Header } from '../components/shared/Header';
 import { Button } from '../components/shared/Button';
 import { Card, CardBody } from '../components/shared/Card';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
-import { useApp } from '../context/AppContext';
-import { ConstructionSite, TechnicalDocument } from '../types';
+import { ConstructionSite } from '../types';
+import { getDocumentiTecnici, eliminaDocumentoTecnico } from '../services/api';
+import { ExternalLink } from 'lucide-react';
 
 interface HomeDocumentiTecniciProps {
   site: ConstructionSite;
@@ -15,12 +16,12 @@ interface HomeDocumentiTecniciProps {
 }
 
 const documentTypeLabels: Record<string, string> = {
-  prospetto: 'Prospetto',
-  pianta: 'Pianta',
-  foto: 'Foto',
-  permesso: 'Permesso',
-  relazione: 'Relazione',
-  altro: 'Altro',
+  PROSPETTO: 'Prospetto',
+  PIANTA: 'Pianta',
+  FOTO: 'Foto',
+  PERMESSO: 'Permesso',
+  RELAZIONE: 'Relazione',
+  ALTRO: 'Altro',
 };
 
 export function HomeDocumentiTecnici({
@@ -29,29 +30,40 @@ export function HomeDocumentiTecnici({
   onAddDocument,
   readOnly = false,
 }: HomeDocumentiTecniciProps) {
-  const { technicalDocuments, workPhases, deleteTechnicalDocument } = useApp();
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [documenti, setDocumenti] = useState<any[]>([]);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const siteDocs = technicalDocuments.filter(d => d.cantiereId === site.id);
+  useEffect(() => {
+    caricaDocumenti();
+  }, [site.id]);
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('it-IT', {
+  const caricaDocumenti = async () => {
+    try {
+      const data = await getDocumentiTecnici(Number(site.id));
+      if (Array.isArray(data)) setDocumenti(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('it-IT', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
     });
   };
 
-  const getPhaseName = (phaseId?: string) => {
-    if (!phaseId) return 'Cantiere generale';
-    const phase = workPhases.find(p => p.id === phaseId);
-    return phase ? phase.nome : 'Fase sconosciuta';
-  };
-
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deleteId) {
-      deleteTechnicalDocument(deleteId);
-      setDeleteId(null);
+      try {
+        await eliminaDocumentoTecnico(Number(site.id), deleteId);
+        await caricaDocumenti();
+        setDeleteId(null);
+      } catch (err: any) {
+        alert(err.message);
+      }
     }
   };
 
@@ -73,7 +85,6 @@ export function HomeDocumentiTecnici({
             <h1 className="text-2xl font-bold text-gray-900">Documenti Tecnici</h1>
             <p className="text-gray-500 mt-1">{site.nome}</p>
           </div>
-
           {!readOnly && onAddDocument && (
             <Button onClick={onAddDocument} icon={<Plus className="w-4 h-4" />}>
               Aggiungi Documento
@@ -81,7 +92,7 @@ export function HomeDocumentiTecnici({
           )}
         </div>
 
-        {siteDocs.length === 0 ? (
+        {documenti.length === 0 ? (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
               <FolderOpen className="w-8 h-8 text-gray-400" />
@@ -93,7 +104,7 @@ export function HomeDocumentiTecnici({
           </div>
         ) : (
           <div className="space-y-3">
-            {siteDocs.map(doc => (
+            {documenti.map(doc => (
               <Card key={doc.id}>
                 <CardBody className="p-5">
                   <div className="flex items-start justify-between gap-4">
@@ -106,28 +117,29 @@ export function HomeDocumentiTecnici({
                         <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
                           <div className="flex items-center gap-1">
                             <Tag className="w-4 h-4" />
-                            <span>{documentTypeLabels[doc.tipologia]}</span>
+                            <span>{documentTypeLabels[doc.tipologia] || doc.tipologia}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
                             <span>{formatDate(doc.data)}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <FolderOpen className="w-4 h-4" />
-                            <span>{getPhaseName(doc.faseId)}</span>
-                          </div>
+                          {doc.fase && (
+                            <div className="flex items-center gap-1">
+                              <FolderOpen className="w-4 h-4" />
+                              <span>{doc.fase.nome}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => window.open(doc.fileUrl, '_blank')}
-                        icon={<Download className="w-4 h-4" />}
+                       icon={<ExternalLink className="w-4 h-4" />}
                       >
-                        <span className="hidden sm:inline">Scarica</span>
+                        <span className="hidden sm:inline">Apri</span>
                       </Button>
                       {!readOnly && (
                         <Button
@@ -149,9 +161,9 @@ export function HomeDocumentiTecnici({
         )}
 
         <ConfirmDialog
-          isOpen={!!deleteId}
+          isOpen={deleteId !== null}
           title="Elimina Documento"
-          message="Sei sicuro di voler eliminare questo documento? Questa operazione non può essere annullata."
+          message="Sei sicuro di voler eliminare questo documento?"
           confirmLabel="Elimina"
           onConfirm={handleDelete}
           onCancel={() => setDeleteId(null)}

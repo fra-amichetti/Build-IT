@@ -236,3 +236,84 @@ export async function eliminaSquadra(id: number) {
   if (!response.ok) throw new Error(data.errore || 'Errore durante l\'eliminazione della squadra');
   return data;
 }
+
+// ── DOCUMENTI TECNICI ──────────────────────────────────────────────
+
+export async function getDocumentiTecnici(cantiereId: number) {
+  const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/documenti-tecnici`);
+  const data = await response.json();
+  if (!response.ok) throw new Error('Errore nel caricamento dei documenti tecnici');
+  return data;
+}
+
+export async function aggiungiDocumentoTecnico(
+  cantiereId: number,
+  nome: string,
+  tipologia: string,
+  fileUrl: string,
+  data: string,
+  faseId?: number
+) {
+  const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/documenti-tecnici`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome, tipologia, fileUrl, data, faseId: faseId?.toString() }),
+  });
+  const data2 = await response.json();
+  if (!response.ok) throw new Error(data2.errore || 'Errore durante l\'aggiunta del documento');
+  return data2;
+}
+
+export async function eliminaDocumentoTecnico(cantiereId: number, id: number) {
+  const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/documenti-tecnici/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore durante l\'eliminazione');
+  return data;
+}
+
+// ── DOCUMENTI CONTABILI ──────────────────────────────────────────────
+
+export async function getDocumentiContabili(cantiereId: number) {
+  const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/documenti-contabili`);
+  const data = await response.json();
+  if (!response.ok) throw new Error('Errore nel caricamento dei documenti contabili');
+  return data;
+}
+export async function aggiungiDocumentoContabile(
+  cantiereId: number,
+  nome: string,
+  tipo: string,
+  importo: number,
+  fileUrl: string,
+  data: string,
+  faseId?: number
+) {
+  const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/documenti-contabili`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome, tipo, importo: importo.toString(), fileUrl, data, faseId: faseId?.toString() }),
+  });
+  const data2 = await response.json();
+  if (!response.ok) throw new Error(data2.errore || 'Errore durante l\'aggiunta del documento');
+  return data2;
+}
+
+export async function eliminaDocumentoContabile(cantiereId: number, id: number) {
+  const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/documenti-contabili/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore durante l\'eliminazione');
+  return data;
+}
+
+export async function saldaFattura(cantiereId: number, id: number) {
+  const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/documenti-contabili/${id}/salda`, {
+    method: 'PUT',
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore durante il saldo della fattura');
+  return data;
+}
