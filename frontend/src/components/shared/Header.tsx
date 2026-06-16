@@ -7,7 +7,8 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
-  const { currentUser, logout } = useApp();
+  const { realUser, logoutReal } = useApp();
+  const displayUser = realUser;
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
@@ -43,13 +44,15 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
           </div>
 
           {/* User Info & Actions */}
-          {currentUser && (
+          {displayUser && (
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex flex-col items-end">
                 <span className="text-sm font-medium text-gray-900">
-                  {currentUser.nome} {currentUser.cognome}
+                  {displayUser.nome} {displayUser.cognome}
                 </span>
-                <span className="text-xs text-red-700 font-medium">{currentUser.role}</span>
+                <span className="text-xs text-red-700 font-medium capitalize">
+                  {displayUser.ruolo?.toLowerCase()}
+                </span>
               </div>
 
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
@@ -57,7 +60,7 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
               </div>
 
               <button
-                onClick={logout}
+                onClick={logoutReal}
                 className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <LogOut className="w-4 h-4" />

@@ -9,8 +9,15 @@ import {
   mockAccountingDocuments,
 } from '../data/mockData';
 
+const SESSION_KEY = 'buildit_session';
+
 interface AppContextType {
-  // Auth
+  // Auth (backend reale)
+  realUser: any | null;
+  loginReal: (user: any) => void;
+  logoutReal: () => void;
+
+  // Auth (mock legacy)
   currentUser: User | null;
   login: (email: string, password: string) => { success: boolean; error?: string; user?: User };
   logout: () => void;
@@ -59,7 +66,17 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+function readRealUserFromStorage(): any | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw).user ?? null : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [realUser, setRealUser] = useState<any | null>(readRealUserFromStorage);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [constructionSites, setConstructionSites] = useState<ConstructionSite[]>(mockConstructionSites);
@@ -108,7 +125,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [checkDeadlines]);
 
-  // Auth
+  // Auth reale (backend)
+  const loginReal = (user: any) => {
+    setRealUser(user);
+  };
+
+  const logoutReal = () => {
+    setRealUser(null);
+    sessionStorage.removeItem(SESSION_KEY);
+    window.dispatchEvent(new CustomEvent('buildit_logout'));
+  };
+
+  // Auth legacy (mock)
   const login = (email: string, password: string): { success: boolean; error?: string; user?: User } => {
     const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
 
@@ -347,6 +375,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const getPhaseById = (phaseId: string) => workPhases.find((p) => p.id === phaseId);
 
   const value: AppContextType = {
+    realUser,
+    loginReal,
+    logoutReal,
     currentUser,
     login,
     logout,

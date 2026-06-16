@@ -23,6 +23,21 @@ import { ViewAggiungiDocumentoContabile } from './forms/ViewAggiungiDocumentoCon
 import { ConstructionSite, WorkPhase } from './types';
 import { terminaCantiere, getDettagliCantiere, getDettagliFase } from './services/api';
 
+const SESSION_KEY = 'buildit_session';
+
+type SessionData = {
+  user: any;
+  screen: Screen;
+  siteId: number | null;
+  phaseId: number | null;
+};
+
+function homeForRole(ruolo: string): Screen {
+  if (ruolo === 'AMMINISTRATORE') return 'homeAdmin';
+  if (ruolo === 'DIPENDENTE') return 'cantieri';
+  return 'homeCliente';
+}
+
 type Screen =
   | 'auth'
   | 'register'
@@ -45,31 +60,87 @@ type Screen =
   | 'statistiche';
 
 function AppContent() {
-  const { currentUser } = useApp();
+  const { loginReal, logoutReal } = useApp();
   const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
   const [selectedSite, setSelectedSite] = useState<ConstructionSite | null>(null);
   const [selectedPhase, setSelectedPhase] = useState<WorkPhase | null>(null);
   const [showPhaseCompleteDialog, setShowPhaseCompleteDialog] = useState(false);
-const [loggedUser, setLoggedUser] = useState<any>(null);
-  const handleLoginSuccess = (role: string, user: any) => {
-  setLoggedUser(user);
-  if (role === 'Amministratore') {
-    setCurrentScreen('homeAdmin');
-  } else if (role === 'Dipendente') {
-    setCurrentScreen('cantieri');
-  } else if (role === 'Cliente') {
-    setCurrentScreen('homeCliente');
-  }
-};
+  const [loggedUser, setLoggedUser] = useState<any>(null);
 
-  // Redirect to auth when user logs out
+  // ── Ripristino sessione al refresh ────────────────────────────────────────
   useEffect(() => {
-    if (!currentUser) {
-      setCurrentScreen('auth');
-      setSelectedSite(null);
-      setSelectedPhase(null);
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return;
+    try {
+      const { user, screen, siteId, phaseId }: SessionData = JSON.parse(raw);
+      setLoggedUser(user);
+      loginReal(user);
+
+      const NEEDS_SITE: Screen[] = [
+        'cantiere', 'modificaCantiere', 'terminaCantiere', 'aggiungiFase',
+        'documentiTecnici', 'documentiContabili',
+        'aggiungiDocumentoTecnico', 'aggiungiDocumentoContabile',
+      ];
+      const NEEDS_PHASE: Screen[] = ['fase', 'modificaFase'];
+
+      if (siteId && (NEEDS_SITE.includes(screen) || NEEDS_PHASE.includes(screen))) {
+        getDettagliCantiere(siteId)
+          .then(site => {
+            setSelectedSite(site);
+            if (phaseId && NEEDS_PHASE.includes(screen)) {
+              return getDettagliFase(phaseId).then(phase => {
+                setSelectedPhase(phase);
+                setCurrentScreen(screen);
+              });
+            }
+            setCurrentScreen(screen);
+          })
+          .catch(() => setCurrentScreen(homeForRole(user.ruolo)));
+      } else {
+        setCurrentScreen(screen ?? homeForRole(user.ruolo));
+      }
+    } catch {
+      sessionStorage.removeItem(SESSION_KEY);
     }
-  }, [currentUser]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Salvataggio sessione ad ogni cambio di stato ──────────────────────────
+  useEffect(() => {
+    if (!loggedUser) return;
+    const session: SessionData = {
+      user: loggedUser,
+      screen: currentScreen,
+      siteId: selectedSite ? Number(selectedSite.id) : null,
+      phaseId: selectedPhase ? Number(selectedPhase.id) : null,
+    };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }, [loggedUser, currentScreen, selectedSite, selectedPhase]);
+
+  // ── Logout ────────────────────────────────────────────────────────────────
+  const handleLogout = () => {
+    setLoggedUser(null);
+    setSelectedSite(null);
+    setSelectedPhase(null);
+    setCurrentScreen('auth');
+    logoutReal();
+  };
+
+  useEffect(() => {
+    window.addEventListener('buildit_logout', handleLogout);
+    return () => window.removeEventListener('buildit_logout', handleLogout);
+  }); // dipendenza vuota: handleLogout è stabile tra render
+
+  const handleLoginSuccess = (role: string, user: any) => {
+    setLoggedUser(user);
+    loginReal(user);
+    if (role === 'Amministratore') {
+      setCurrentScreen('homeAdmin');
+    } else if (role === 'Dipendente') {
+      setCurrentScreen('cantieri');
+    } else if (role === 'Cliente') {
+      setCurrentScreen('homeCliente');
+    }
+  };
 
   const handleSelectSite = (site: ConstructionSite) => {
     setSelectedSite(site);
