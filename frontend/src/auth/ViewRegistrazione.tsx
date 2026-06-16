@@ -37,8 +37,11 @@ export function ViewRegistrazione({ onBack }: ViewRegistrazioneProps) {
 
     if (!password) {
       newErrors.password = 'La password è obbligatoria';
-    } else if (password.length < 8) {
-      newErrors.password = 'La password deve contenere almeno 8 caratteri';
+    } else {
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!?.@/]).{8,}$/;
+      if (!passwordRegex.test(password)) {
+        newErrors.password = 'La password deve contenere almeno 8 caratteri, una maiuscola, una minuscola, un numero e un carattere speciale tra !?.@/';
+      }
     }
 
     if (!confirmPassword) {
@@ -137,13 +140,13 @@ const handleSubmit = async (e: React.FormEvent) => {
               required
             />
 
-            <Input
+<Input
               label="Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               error={errors.password}
-              helperText="Minimo 8 caratteri"
+              helperText="Min. 8 car., 1 Maiusc., 1 Minusc., 1 Num., 1 Spec. tra !?.@/"
               required
             />
 
