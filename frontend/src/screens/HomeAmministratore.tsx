@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Building2, Shield } from 'lucide-react';
 import { Header } from '../components/shared/Header';
 import { Card, CardBody } from '../components/shared/Card';
 import { Button } from '../components/shared/Button';
-import { useApp } from '../context/AppContext';
 import { HomeGestioneDipendenti } from './HomeGestioneDipendenti';
 import { HomeGestioneSquadre } from './HomeGestioneSquadre';
 import { ViewMostraStatistiche } from './ViewMostraStatistiche';
+import { getStatistiche, getSquadre } from '../services/api';
 
 interface HomeAmministratoreProps {
   onNavigate: (screen: 'cantieri') => void;
@@ -14,11 +14,32 @@ interface HomeAmministratoreProps {
 }
 
 export function HomeAmministratore({ onNavigate, nomeUtente }: HomeAmministratoreProps) {
-  const { currentUser, constructionSites, teams } = useApp();
   const [activeTab, setActiveTab] = useState<'overview' | 'dipendenti' | 'squadre' | 'statistiche'>('overview');
+  const [activeSites, setActiveSites] = useState(0);
+  const [delayedSites, setDelayedSites] = useState(0);
+  const [totaleSquadre, setTotaleSquadre] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const activeSites = constructionSites.filter(s => s.stato === 'In Corso').length;
-  const delayedSites = constructionSites.filter(s => s.stato === 'In Ritardo').length;
+  useEffect(() => {
+    caricaPanoramica();
+  }, []);
+
+  const caricaPanoramica = async () => {
+    setIsLoading(true);
+    try {
+      const [stats, squadre] = await Promise.all([
+        getStatistiche(),
+        getSquadre(),
+      ]);
+      setActiveSites(stats.numeroCantieriAttivi);
+      setDelayedSites(stats.numeroCantieriInRitardo);
+      setTotaleSquadre(squadre.length);
+    } catch (err) {
+      console.error('Errore nel caricamento della panoramica', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -43,15 +64,15 @@ export function HomeAmministratore({ onNavigate, nomeUtente }: HomeAmministrator
 
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <p className="text-3xl font-bold">{activeSites}</p>
+                <p className="text-3xl font-bold">{isLoading ? '—' : activeSites}</p>
                 <p className="text-red-100 text-sm">Cantieri Attivi</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <p className="text-3xl font-bold">{delayedSites}</p>
+                <p className="text-3xl font-bold">{isLoading ? '—' : delayedSites}</p>
                 <p className="text-red-100 text-sm">In Ritardo</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                <p className="text-3xl font-bold">{teams.length}</p>
+                <p className="text-3xl font-bold">{isLoading ? '—' : totaleSquadre}</p>
                 <p className="text-red-100 text-sm">Squadre</p>
               </div>
             </div>
@@ -142,17 +163,14 @@ export function HomeAmministratore({ onNavigate, nomeUtente }: HomeAmministrator
           </div>
         )}
 
-        {/* Dipendenti Tab - Embedded Component */}
         {activeTab === 'dipendenti' && (
           <HomeGestioneDipendenti onBack={() => setActiveTab('overview')} embedded />
         )}
 
-        {/* Squadre Tab - Embedded Component */}
         {activeTab === 'squadre' && (
-         <HomeGestioneSquadre onBack={() => setActiveTab('overview')} embedded />
+          <HomeGestioneSquadre onBack={() => setActiveTab('overview')} embedded />
         )}
 
-        {/* Statistiche Tab - Embedded Component */}
         {activeTab === 'statistiche' && (
           <ViewMostraStatistiche onBack={() => setActiveTab('overview')} embedded />
         )}

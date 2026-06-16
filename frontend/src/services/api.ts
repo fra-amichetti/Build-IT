@@ -236,3 +236,19 @@ export async function eliminaSquadra(id: number) {
   if (!response.ok) throw new Error(data.errore || 'Errore durante l\'eliminazione della squadra');
   return data;
 }
+
+// ── STATISTICHE ──────────────────────────────────────────
+
+export async function getStatistiche() {
+  const response = await fetch(`${BASE_URL}/statistiche`);
+  const data = await response.json();
+  if (!response.ok) throw new Error('Errore nel caricamento delle statistiche');
+  return data;
+}
+
+export async function getStatisticheCantiere(idCantiere: number) {
+  const response = await fetch(`${BASE_URL}/statistiche/cantiere/${idCantiere}`);
+  const data = await response.json();
+  if (!response.ok) throw new Error('Errore nel caricamento delle statistiche del cantiere');
+  return data;
+}
