@@ -267,14 +267,20 @@ export async function aggiungiDocumentoTecnico(
   cantiereId: number,
   nome: string,
   tipologia: string,
-  fileUrl: string,
+  file: File,
   data: string,
   faseId?: number
 ) {
+  const formData = new FormData();
+  formData.append('nome', nome);
+  formData.append('tipologia', tipologia);
+  formData.append('file', file);
+  formData.append('data', data);
+  if (faseId !== undefined) formData.append('faseId', faseId.toString());
+
   const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/documenti-tecnici`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nome, tipologia, fileUrl, data, faseId: faseId?.toString() }),
+    body: formData,
   });
   const data2 = await response.json();
   if (!response.ok) throw new Error(data2.errore || 'Errore durante l\'aggiunta del documento');
@@ -303,14 +309,21 @@ export async function aggiungiDocumentoContabile(
   nome: string,
   tipo: string,
   importo: number,
-  fileUrl: string,
+  file: File,
   data: string,
   faseId?: number
 ) {
+  const formData = new FormData();
+  formData.append('nome', nome);
+  formData.append('tipo', tipo);
+  formData.append('importo', importo.toString());
+  formData.append('file', file);
+  formData.append('data', data);
+  if (faseId !== undefined) formData.append('faseId', faseId.toString());
+
   const response = await fetch(`${BASE_URL}/cantieri/${cantiereId}/documenti-contabili`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nome, tipo, importo: importo.toString(), fileUrl, data, faseId: faseId?.toString() }),
+    body: formData,
   });
   const data2 = await response.json();
   if (!response.ok) throw new Error(data2.errore || 'Errore durante l\'aggiunta del documento');

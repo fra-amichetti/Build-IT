@@ -10,6 +10,7 @@ import { getStatistiche } from '../services/api';
 
 interface ViewMostraStatisticheProps {
   onBack: () => void;
+  embedded?: boolean;
 }
 
 interface Statistiche {
@@ -21,8 +22,7 @@ interface Statistiche {
   numeroCantieriTerminati: number;
   squadreImpiegate: { id: number; nome: string; specializzazione: string }[];
 }
-
-export function ViewMostraStatistiche({ onBack }: ViewMostraStatisticheProps) {
+export function ViewMostraStatistiche({ onBack, embedded }: ViewMostraStatisticheProps) {
   const [stats, setStats] = useState<Statistiche | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -43,16 +43,19 @@ export function ViewMostraStatistiche({ onBack }: ViewMostraStatisticheProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header showMenuButton onMenuClick={onBack} />
+     {!embedded && <Header showMenuButton onMenuClick={onBack} />}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Torna alla home</span>
-        </button>
+       {!embedded && (
+  <button
+    onClick={onBack}
+    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+  >
+    <ArrowLeft className="w-5 h-5" />
+    <span>Torna alla home</span>
+  </button>
+)}
+         
 
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, Clock } from 'lucide-react';
+import { ArrowLeft, Save, Clock, AlertCircle } from 'lucide-react';
 import { Header } from '../components/shared/Header';
 import { Button } from '../components/shared/Button';
 import { Input, Select, Textarea } from '../components/shared/Input';
@@ -25,6 +25,7 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
     squadraId: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError('');
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -65,7 +67,7 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
       );
       onSuccess();
     } catch (err: any) {
-      setErrors({ nome: err.message || 'Errore durante il salvataggio' });
+      setSubmitError(err.message || 'Errore durante il salvataggio');
     }
     setIsLoading(false);
   };
@@ -94,6 +96,13 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
             </div>
           </div>
         </div>
+
+        {submitError && (
+          <div className="mb-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-800">{submitError}</p>
+          </div>
+        )}
 
         <Card>
           <CardBody className="p-6">

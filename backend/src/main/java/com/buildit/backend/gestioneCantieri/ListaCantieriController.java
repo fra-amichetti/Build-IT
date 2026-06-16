@@ -30,11 +30,16 @@ public class ListaCantieriController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getElencoCantieri() {
-        List<Cantiere> cantieri = cantiereRepository.findAll();
-        return ResponseEntity.ok(cantieri);
+public ResponseEntity<?> getElencoCantieri() {
+    List<Cantiere> cantieri = cantiereRepository.findAll();
+    for (Cantiere c : cantieri) {
+        if (c.verificaRitardo()) {
+            c.setStato(StatoCantiere.IN_RITARDO);
+            cantiereRepository.save(c);
+        }
     }
-
+    return ResponseEntity.ok(cantieri);
+}
     @GetMapping(params = "email")
     public ResponseEntity<?> getElencoCantieriByCliente(@RequestParam String email) {
         List<Cantiere> cantieri = cantiereRepository.findByEmailCliente(email);

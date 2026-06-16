@@ -14,6 +14,7 @@ import { ConstructionSite, WorkPhase } from '../types';
 import { iniziaLavoriCantiere, terminaCantiere } from '../services/api';
 import { getFasi } from '../services/api';
 
+
 type TabType = 'fasi' | 'tecnici' | 'contabili';
 
 interface HomeCantiereProps {
@@ -47,6 +48,7 @@ useEffect(() => {
   getFasi(Number(site.id)).then(setPhases).catch(console.error);
 }, [site.id]);
 const [showTerminaDialog, setShowTerminaDialog] = useState(false);
+const [terminaError, setTerminaError] = useState('');
   const formatDate = (dateStr?: string) => {
   if (!dateStr) return '—';
   const date = new Date(dateStr + 'T00:00:00');
@@ -96,6 +98,20 @@ function mapStatoFase(stato: string): string {
           <ArrowLeft className="w-5 h-5" />
           <span>Torna alla lista</span>
         </button>
+
+        {terminaError && (
+          <div className="mb-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800">Impossibile terminare il cantiere</p>
+              <p className="text-sm text-red-700 mt-0.5">{terminaError}</p>
+            </div>
+            <button onClick={() => setTerminaError('')} className="text-red-400 hover:text-red-600">
+              <span className="sr-only">Chiudi</span>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        )}
 
         {/* Site Header Card */}
         <Card className="mb-6">
@@ -224,69 +240,93 @@ function mapStatoFase(stato: string): string {
 
         {/* Tab Content */}
         {activeTab === 'fasi' && (
-          <div>
-            {!readOnly && onAddPhase && site.stato !== 'Terminato' && (
-              <div className="mb-4">
-                <Button onClick={onAddPhase} icon={<Plus className="w-4 h-4" />}>
-                  Aggiungi Fase
-                </Button>
-              </div>
-            )}
+  <div>
+    {!readOnly && onAddPhase && site.stato !== 'TERMINATO' && (
+      <div className="mb-6">
+        <Button onClick={onAddPhase} icon={<Plus className="w-4 h-4" />}>
+          Aggiungi Fase
+        </Button>
+      </div>
+    )}
 
-            {phases.length === 0 ? (
-              <div className="text-center py-8">
-                <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">Nessuna fase presente</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {phases
-                 .sort((a, b) => new Date(a.dataInizioPrevista).getTime() - new Date(b.dataInizioPrevista).getTime())
-                  .map((phase, index) => {
-                  const team = phase.squadra;
-                  return (
-                    <Card
-                      key={phase.id}
-                      hover
-                      onClick={() => onSelectPhase(phase)}
-                    >
-                      <CardBody className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600">
-                              {index + 1}
-                            </div>
-                            <div>
-                              <h4 className="font-medium text-gray-900">{phase.nome}</h4>
-                              <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                                <span>
-                                 {formatDate(phase.dataInizioPrevista)} - {formatDate(phase.dataFineEffettiva || phase.dataFinePrevista)} </span>
-                                {team && (
-                                  <div className="flex items-center gap-1">
-                                    <Users className="w-4 h-4" />
-                                    <span>{team.nome}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+    {phases.length === 0 ? (
+      <div className="text-center py-8">
+        <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-500">Nessuna fase presente</p>
+      </div>
+    ) : (
+      <div className="relative">
+        {/* Linea verticale della timeline */}
+        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
 
-                          <div className="flex items-center gap-3">
+        <div className="space-y-4">
+          {phases
+            .sort((a, b) => new Date(a.dataInizioPrevista).getTime() - new Date(b.dataInizioPrevista).getTime())
+            .map((phase, index) => {
+              const statoMappato = mapStatoFase(phase.stato);
+              const colori: Record<string, string> = {
+                'Pianificata': 'bg-gray-400',
+                'In Corso': 'bg-blue-500',
+                'In Ritardo': 'bg-red-500',
+                'Completata': 'bg-green-500',
+              };
+              const colore = colori[statoMappato] || 'bg-gray-400';
+
+              return (
+                <div key={phase.id} className="relative flex items-start gap-4 pl-14">
+                  {/* Cerchio sulla timeline */}
+                  <div className={`absolute left-4 w-5 h-5 rounded-full ${colore} border-2 border-white shadow-sm flex items-center justify-center z-10`}>
+                    <span className="text-white text-xs font-bold">{index + 1}</span>
+                  </div>
+
+                  {/* Card della fase */}
+                  <Card
+                    className="flex-1 cursor-pointer hover:shadow-md transition-shadow"
+                    hover
+                    onClick={() => onSelectPhase(phase)}
+                  >
+                    <CardBody className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-semibold text-gray-900">{phase.nome}</h4>
                             <StatusBadge
-  status={mapStatoFase(phase.stato)}
-  variant={getPhaseStatusVariant(mapStatoFase(phase.stato))}
-/>
-                            <ChevronRight className="w-5 h-5 text-gray-400" />
+                              status={statoMappato}
+                              variant={getPhaseStatusVariant(statoMappato)}
+                            />
+                          </div>
+                          {phase.descrizione && (
+                            <p className="text-sm text-gray-500 mb-2">{phase.descrizione}</p>
+                          )}
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              <span>Inizio: {formatDate(phase.dataInizioPrevista)}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              <span>Fine: {formatDate(phase.dataFineEffettiva || phase.dataFinePrevista)}</span>
+                            </div>
+                            {phase.squadra && (
+                              <div className="flex items-center gap-1">
+                                <Users className="w-4 h-4" />
+                                <span>{phase.squadra.nome}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </CardBody>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+                        <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-1" />
+                      </div>
+                    </CardBody>
+                  </Card>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
         {activeTab === 'tecnici' && (
           <Card hover onClick={onOpenTechnicalDocs}>
@@ -332,11 +372,12 @@ function mapStatoFase(stato: string): string {
   confirmLabel="Termina"
   onConfirm={async () => {
     setShowTerminaDialog(false);
+    setTerminaError('');
     try {
       await terminaCantiere(Number(site.id));
       onBack();
     } catch (err: any) {
-      alert(err.message);
+      setTerminaError(err.message || 'Errore durante la chiusura del cantiere');
     }
   }}
   onCancel={() => setShowTerminaDialog(false)}

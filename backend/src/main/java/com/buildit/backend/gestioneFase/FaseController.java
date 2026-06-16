@@ -46,16 +46,27 @@ public class FaseController {
             return ResponseEntity.badRequest().body(Map.of("errore", "Una fase terminata non può essere modificata"));
         }
         if (body.containsKey("nome") && !body.get("nome").isBlank()) {
-    fase.setNome(body.get("nome"));
-}
+            fase.setNome(body.get("nome"));
+        }
         if (body.containsKey("descrizione")) fase.setDescrizione(body.get("descrizione"));
-        if (body.containsKey("dataFinePrevista") && !body.get("dataFinePrevista").isBlank()) {
-            fase.setDataFinePrevista(LocalDate.parse(body.get("dataFinePrevista")));
-        }
+
+        LocalDate nuovaFine = (body.containsKey("dataFinePrevista") && !body.get("dataFinePrevista").isBlank())
+                ? LocalDate.parse(body.get("dataFinePrevista"))
+                : fase.getDataFinePrevista();
+
         if (body.containsKey("squadraId") && !body.get("squadraId").isBlank()) {
-            squadraRepository.findById(Long.parseLong(body.get("squadraId")))
-                .ifPresent(fase::setSquadra);
+            Long squadraId = Long.parseLong(body.get("squadraId"));
+            boolean overlap = !faseLavorativaRepository
+                    .findOverlappingBySquadra(squadraId, fase.getId(), fase.getDataInizioPrevista(), nuovaFine)
+                    .isEmpty();
+            if (overlap) {
+                return ResponseEntity.badRequest().body(Map.of("errore",
+                        "La squadra selezionata è già impegnata in un'altra fase che si sovrappone a questo periodo"));
+            }
+            squadraRepository.findById(squadraId).ifPresent(fase::setSquadra);
         }
+
+        fase.setDataFinePrevista(nuovaFine);
         return ResponseEntity.ok(faseLavorativaRepository.save(fase));
     }
 

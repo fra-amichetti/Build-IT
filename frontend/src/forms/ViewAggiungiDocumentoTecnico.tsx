@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, FileText, Link } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Save, FileText, Upload, AlertCircle } from 'lucide-react';
 import { Header } from '../components/shared/Header';
 import { Button } from '../components/shared/Button';
 import { Input, Select } from '../components/shared/Input';
@@ -7,53 +7,80 @@ import { Card, CardBody } from '../components/shared/Card';
 import { ConstructionSite } from '../types';
 import { aggiungiDocumentoTecnico, getFasi } from '../services/api';
 
+const FORMATI_AMMESSI = ['.pdf', '.jpg', '.png'];
+
 interface ViewAggiungiDocumentoTecnicoProps {
   site: ConstructionSite;
   onBack: () => void;
   onSuccess: () => void;
 }
- 
+
 export function ViewAggiungiDocumentoTecnico({ site, onBack, onSuccess }: ViewAggiungiDocumentoTecnicoProps) {
   const [fasi, setFasi] = useState<any[]>([]);
   const [formData, setFormData] = useState({
-  nome: '',
-  tipologia: '',
-  fileUrl: '',
-  faseId: '',
-  data: new Date().toISOString().split('T')[0],
-});
+    nome: '',
+    tipologia: '',
+    faseId: '',
+    data: new Date().toISOString().split('T')[0],
+  });
+  const [file, setFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getFasi(Number(site.id)).then(setFasi).catch(console.error);
   }, [site.id]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0] ?? null;
+    setFile(selected);
+    if (selected) {
+      const lower = selected.name.toLowerCase();
+      const valido = FORMATI_AMMESSI.some(ext => lower.endsWith(ext));
+      setErrors(prev => ({
+        ...prev,
+        file: valido ? '' : 'Formato non supportato. Usa .pdf, .jpg o .png',
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.nome.trim()) newErrors.nome = 'Il nome è obbligatorio';
+    if (formData.nome.length > 32) newErrors.nome = 'Il nome non può superare 32 caratteri';
+    if (formData.tipologia.length > 100) newErrors.tipologia = 'La tipologia non può superare 100 caratteri';
+    if (!file) {
+      newErrors.file = 'Il file è obbligatorio';
+    } else {
+      const lower = file.name.toLowerCase();
+      if (!FORMATI_AMMESSI.some(ext => lower.endsWith(ext))) {
+        newErrors.file = 'Formato non supportato. Usa .pdf, .jpg o .png';
+      }
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.nome.trim()) newErrors.nome = 'Il nome è obbligatorio';
-    if (!formData.fileUrl.trim()) newErrors.fileUrl = 'Il link al file è obbligatorio';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+    setSubmitError('');
+    if (!validateForm()) return;
 
     setIsLoading(true);
     try {
-     await aggiungiDocumentoTecnico(
-  Number(site.id),
-  formData.nome,
-  formData.tipologia,
-  formData.fileUrl,
-  formData.data,
-  formData.faseId ? Number(formData.faseId) : undefined
-);
+      await aggiungiDocumentoTecnico(
+        Number(site.id),
+        formData.nome,
+        formData.tipologia,
+        file!,
+        formData.data,
+        formData.faseId ? Number(formData.faseId) : undefined
+      );
       onSuccess();
     } catch (err: any) {
-      setErrors({ nome: err.message || 'Errore durante il salvataggio' });
+      setSubmitError(err.message || 'Errore durante il salvataggio');
     }
     setIsLoading(false);
   };
@@ -83,6 +110,13 @@ export function ViewAggiungiDocumentoTecnico({ site, onBack, onSuccess }: ViewAg
           </div>
         </div>
 
+        {submitError && (
+          <div className="mb-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-800">{submitError}</p>
+          </div>
+        )}
+
         <Card>
           <CardBody className="p-6">
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -92,32 +126,59 @@ export function ViewAggiungiDocumentoTecnico({ site, onBack, onSuccess }: ViewAg
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                 error={errors.nome}
                 placeholder="es. Pianta piano primo"
+                maxLength={32}
                 required
               />
-<Input
-  label="Tipologia"
-  value={formData.tipologia}
-  onChange={(e) => setFormData({ ...formData, tipologia: e.target.value })}
-  error={errors.tipologia}
-  placeholder="es. Pianta, Foto, Permesso..."
-/>
 
               <Input
-                label="Link al file"
-                value={formData.fileUrl}
-                onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
-                error={errors.fileUrl}
-                placeholder="es. https://drive.google.com/..."
+                label="Tipologia"
+                value={formData.tipologia}
+                onChange={(e) => setFormData({ ...formData, tipologia: e.target.value })}
+                error={errors.tipologia}
+                placeholder="es. Pianta, Foto, Permesso..."
+                maxLength={100}
+              />
+
+              {/* File picker */}
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  File <span className="text-red-500">*</span>
+                  <span className="ml-1 font-normal text-gray-400">(.pdf, .jpg, .png)</span>
+                </label>
+                <div
+                  onClick={() => fileRef.current?.click()}
+                  className={`flex items-center gap-3 w-full px-3 py-2 border rounded-lg cursor-pointer transition-colors hover:border-gray-400 ${
+                    errors.file ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                  }`}
+                >
+                  <Upload className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <span className={`text-sm truncate ${file ? 'text-gray-900' : 'text-gray-400'}`}>
+                    {file ? file.name : 'Scegli un file...'}
+                  </span>
+                  {file && (
+                    <span className="ml-auto text-xs text-gray-400 flex-shrink-0">
+                      {(file.size / 1024).toFixed(0)} KB
+                    </span>
+                  )}
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".pdf,.jpg,.png"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                {errors.file && <p className="mt-1.5 text-sm text-red-600">{errors.file}</p>}
+              </div>
+
+              <Input
+                label="Data caricamento"
+                type="date"
+                value={formData.data}
+                onChange={(e) => setFormData({ ...formData, data: e.target.value })}
                 required
               />
 
-<Input
-  label="Data caricamento"
-  type="date"
-  value={formData.data}
-  onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-  required
-/>
               <Select
                 label="Fase Associata (opzionale)"
                 value={formData.faseId}

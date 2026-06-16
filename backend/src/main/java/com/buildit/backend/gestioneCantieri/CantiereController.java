@@ -34,14 +34,19 @@ public class CantiereController {
         this.squadraRepository = squadraRepository;
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getDettagliCantiere(@PathVariable Long id) {
-        Optional<Cantiere> cantiere = cantiereRepository.findById(id);
-        if (cantiere.isEmpty()) {
-            return ResponseEntity.status(404).body(Map.of("errore", "Cantiere non trovato"));
-        }
-        return ResponseEntity.ok(cantiere.get());
+   @GetMapping("/{id}")
+public ResponseEntity<?> getDettagliCantiere(@PathVariable Long id) {
+    Optional<Cantiere> opt = cantiereRepository.findById(id);
+    if (opt.isEmpty()) {
+        return ResponseEntity.status(404).body(Map.of("errore", "Cantiere non trovato"));
     }
+    Cantiere cantiere = opt.get();
+    if (cantiere.verificaRitardo()) {
+        cantiere.setStato(StatoCantiere.IN_RITARDO);
+        cantiereRepository.save(cantiere);
+    }
+    return ResponseEntity.ok(cantiere);
+}
 
     @PutMapping("/{id}")
     public ResponseEntity<?> modificaCantiere(@PathVariable Long id,
@@ -87,6 +92,14 @@ public class CantiereController {
         if (cantiere.getStato() == StatoCantiere.PIANIFICATO) {
             return ResponseEntity.badRequest().body(Map.of("errore", "Un cantiere pianificato non può essere terminato direttamente"));
         }
+        long fasiNonTerminate = faseLavorativaRepository.findByCantiereId(id).stream()
+                .filter(f -> f.getStato() != StatoFase.TERMINATA)
+                .count();
+        if (fasiNonTerminate > 0) {
+            return ResponseEntity.badRequest().body(Map.of("errore",
+                    "Impossibile terminare il cantiere: " + fasiNonTerminate +
+                    " fase/i non ancora terminate. Terminare tutte le fasi prima di chiudere il cantiere."));
+        }
         cantiere.terminaCantiere();
         return ResponseEntity.ok(cantiereRepository.save(cantiere));
     }
@@ -111,11 +124,23 @@ public class CantiereController {
         if (cantiere.getStato() == StatoCantiere.TERMINATO) {
             return ResponseEntity.badRequest().body(Map.of("errore", "Non si possono aggiungere fasi a un cantiere terminato"));
         }
+        LocalDate inizio = LocalDate.parse(body.get("dataInizioPrevista"));
+        LocalDate fine = LocalDate.parse(body.get("dataFinePrevista"));
+
+        if (body.get("squadraId") != null && !body.get("squadraId").isBlank()) {
+            Long squadraId = Long.parseLong(body.get("squadraId"));
+            boolean overlap = !faseLavorativaRepository.findOverlappingBySquadra(squadraId, -1L, inizio, fine).isEmpty();
+            if (overlap) {
+                return ResponseEntity.badRequest().body(Map.of("errore",
+                        "La squadra selezionata è già impegnata in un'altra fase che si sovrappone a questo periodo"));
+            }
+        }
+
         FaseLavorativa fase = new FaseLavorativa();
         fase.setNome(body.get("nome"));
         fase.setDescrizione(body.get("descrizione"));
-        fase.setDataInizioPrevista(LocalDate.parse(body.get("dataInizioPrevista")));
-        fase.setDataFinePrevista(LocalDate.parse(body.get("dataFinePrevista")));
+        fase.setDataInizioPrevista(inizio);
+        fase.setDataFinePrevista(fine);
         fase.setStato(StatoFase.PIANIFICATA);
         fase.setCantiere(cantiere);
         if (body.get("squadraId") != null && !body.get("squadraId").isBlank()) {

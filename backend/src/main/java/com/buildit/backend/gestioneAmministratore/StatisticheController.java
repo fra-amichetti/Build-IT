@@ -2,10 +2,8 @@ package com.buildit.backend.gestioneAmministratore;
 
 import com.buildit.backend.dominio.*;
 import com.buildit.backend.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,22 +14,23 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "http://localhost:5173")
 public class StatisticheController {
 
-    @Autowired
-    private CantiereRepository cantiereRepository;
+    private final CantiereRepository cantiereRepository;
+    private final SquadraRepository squadraRepository;
+    private final FaseLavorativaRepository faseLavorativaRepository;
+    private final DocumentoContabileRepository documentoContabileRepository;
 
-    @Autowired
-    private SquadraRepository squadraRepository;
-
-    @Autowired
-    private FaseLavorativaRepository faseLavorativaRepository;
-
-    @Autowired
-    private DocumentoContabileRepository documentoContabileRepository;
+    public StatisticheController(CantiereRepository cantiereRepository,
+                                  SquadraRepository squadraRepository,
+                                  FaseLavorativaRepository faseLavorativaRepository,
+                                  DocumentoContabileRepository documentoContabileRepository) {
+        this.cantiereRepository = cantiereRepository;
+        this.squadraRepository = squadraRepository;
+        this.faseLavorativaRepository = faseLavorativaRepository;
+        this.documentoContabileRepository = documentoContabileRepository;
+    }
 
     @GetMapping
     public ResponseEntity<?> getStatistiche() {
-
-        // ── Indicatori economici (solo Fatture, non Preventivi) ──
         List<DocumentoContabile> tuttiIDocumenti = documentoContabileRepository.findAll();
 
         List<Fattura> fatture = tuttiIDocumenti.stream()
@@ -39,41 +38,26 @@ public class StatisticheController {
             .map(d -> (Fattura) d)
             .collect(Collectors.toList());
 
-        double fatturatoTotale = fatture.stream()
-            .mapToDouble(Fattura::getImporto)
-            .sum();
-
+        double fatturatoTotale = fatture.stream().mapToDouble(Fattura::getImporto).sum();
         double fatturatoIncassato = fatture.stream()
             .filter(f -> f.getStatoPagamento() == StatoFattura.SALDATO)
-            .mapToDouble(Fattura::getImporto)
-            .sum();
+            .mapToDouble(Fattura::getImporto).sum();
 
-        double saldoDaIncassare = fatturatoTotale - fatturatoIncassato;
-
-        // ── Indicatori operativi ──
         List<Cantiere> tuttiICantieri = cantiereRepository.findAll();
-
         long numeroCantieriAttivi = tuttiICantieri.stream()
-            .filter(c -> "IN_CORSO".equals(c.getStato()))
+            .filter(c -> c.getStato() == StatoCantiere.IN_CORSO || c.getStato() == StatoCantiere.IN_RITARDO)
             .count();
-
         long numeroCantieriInRitardo = tuttiICantieri.stream()
-            .filter(c -> "IN_RITARDO".equals(c.getStato()))
-            .count();
-
+            .filter(c -> c.getStato() == StatoCantiere.IN_RITARDO).count();
         long numeroCantieriTerminati = tuttiICantieri.stream()
-            .filter(c -> "TERMINATO".equals(c.getStato()))
-            .count();
+            .filter(c -> c.getStato() == StatoCantiere.TERMINATO).count();
 
-        // Squadre attualmente impiegate: hanno almeno una fase non terminata
         List<FaseLavorativa> tutteLeFasi = faseLavorativaRepository.findAll();
-
         List<Map<String, Object>> squadreImpiegate = squadraRepository.findAll().stream()
             .filter(squadra -> tutteLeFasi.stream().anyMatch(fase ->
                 fase.getSquadra() != null
                 && fase.getSquadra().getId().equals(squadra.getId())
-                && fase.getStato() != StatoFase.TERMINATA
-            ))
+                && fase.getStato() != StatoFase.TERMINATA))
             .map(squadra -> {
                 Map<String, Object> m = new HashMap<>();
                 m.put("id", squadra.getId());
@@ -83,11 +67,10 @@ public class StatisticheController {
             })
             .collect(Collectors.toList());
 
-        // ── Risposta ──
         Map<String, Object> risultato = new HashMap<>();
         risultato.put("fatturatoTotale", fatturatoTotale);
         risultato.put("fatturatoIncassato", fatturatoIncassato);
-        risultato.put("saldoDaIncassare", saldoDaIncassare);
+        risultato.put("saldoDaIncassare", fatturatoTotale - fatturatoIncassato);
         risultato.put("numeroCantieriAttivi", numeroCantieriAttivi);
         risultato.put("numeroCantieriInRitardo", numeroCantieriInRitardo);
         risultato.put("numeroCantieriTerminati", numeroCantieriTerminati);
@@ -96,21 +79,17 @@ public class StatisticheController {
         return ResponseEntity.ok(risultato);
     }
 
-    // Statistiche per singolo cantiere (fatturato e saldo di un cantiere specifico)
     @GetMapping("/cantiere/{idCantiere}")
     public ResponseEntity<?> getStatisticheCantiere(@PathVariable Long idCantiere) {
-
         List<DocumentoContabile> docCantiere = documentoContabileRepository.findByCantiereId(idCantiere);
 
         double fatturatoCantiere = docCantiere.stream()
             .filter(d -> d instanceof Fattura)
-            .mapToDouble(DocumentoContabile::getImporto)
-            .sum();
+            .mapToDouble(DocumentoContabile::getImporto).sum();
 
         double saldoCantiere = docCantiere.stream()
             .filter(d -> d instanceof Fattura && ((Fattura) d).getStatoPagamento() == StatoFattura.DA_SALDARE)
-            .mapToDouble(DocumentoContabile::getImporto)
-            .sum();
+            .mapToDouble(DocumentoContabile::getImporto).sum();
 
         Map<String, Object> risultato = new HashMap<>();
         risultato.put("fatturatoCantiere", fatturatoCantiere);

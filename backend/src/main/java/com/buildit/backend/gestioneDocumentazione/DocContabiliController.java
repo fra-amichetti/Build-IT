@@ -2,8 +2,12 @@ package com.buildit.backend.gestioneDocumentazione;
 
 import com.buildit.backend.dominio.*;
 import com.buildit.backend.repository.*;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -17,13 +21,16 @@ public class DocContabiliController {
     private final DocumentoContabileRepository documentoContabileRepository;
     private final CantiereRepository cantiereRepository;
     private final FaseLavorativaRepository faseLavorativaRepository;
+    private final FileStorageService fileStorageService;
 
     public DocContabiliController(DocumentoContabileRepository documentoContabileRepository,
                                    CantiereRepository cantiereRepository,
-                                   FaseLavorativaRepository faseLavorativaRepository) {
+                                   FaseLavorativaRepository faseLavorativaRepository,
+                                   FileStorageService fileStorageService) {
         this.documentoContabileRepository = documentoContabileRepository;
         this.cantiereRepository = cantiereRepository;
         this.faseLavorativaRepository = faseLavorativaRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     @GetMapping
@@ -35,17 +42,49 @@ public class DocContabiliController {
         return ResponseEntity.ok(documenti);
     }
 
-    @PostMapping
-    public ResponseEntity<?> aggiungiDocumentoContabile(@PathVariable Long cantiereId,
-                                                         @RequestBody Map<String, String> body) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> aggiungiDocumentoContabile(
+            @PathVariable Long cantiereId,
+            @RequestParam String nome,
+            @RequestParam String tipo,
+            @RequestParam String importo,
+            @RequestParam MultipartFile file,
+            @RequestParam String data,
+            @RequestParam(required = false) String faseId) {
+
+        // Validazioni di campo
+        if (nome == null || nome.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("errore", "Il nome è obbligatorio"));
+        if (nome.length() > 32)
+            return ResponseEntity.badRequest().body(Map.of("errore", "Il nome non può superare 32 caratteri"));
+
+        double importoNum;
+        try {
+            importoNum = Double.parseDouble(importo);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("errore", "Importo non valido"));
+        }
+        if (importoNum <= 0)
+            return ResponseEntity.badRequest().body(Map.of("errore", "L'importo deve essere maggiore di 0"));
+
+        // Validazione estensione (polimorfismo): per i contabili solo .pdf
+        DocumentoContabile validatore = "Fattura".equals(tipo) ? new Fattura() : new Preventivo();
+        if (!validatore.validaEstensione(file.getOriginalFilename()))
+            return ResponseEntity.badRequest().body(Map.of("errore",
+                    "Formato non supportato. I documenti contabili devono essere in formato .pdf"));
+
         Optional<Cantiere> optCantiere = cantiereRepository.findById(cantiereId);
-        if (optCantiere.isEmpty()) {
+        if (optCantiere.isEmpty())
             return ResponseEntity.status(404).body(Map.of("errore", "Cantiere non trovato"));
+
+        String fileUrl;
+        try {
+            fileUrl = fileStorageService.salva(file, "contabili");
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body(Map.of("errore", "Errore nel salvataggio del file"));
         }
 
-        String tipo = body.get("tipo");
         DocumentoContabile doc;
-
         if ("Fattura".equals(tipo)) {
             Fattura fattura = new Fattura();
             fattura.setStatoPagamento(StatoFattura.DA_SALDARE);
@@ -54,16 +93,14 @@ public class DocContabiliController {
             doc = new Preventivo();
         }
 
-        doc.setNome(body.get("nome"));
-        doc.setFileUrl(body.get("fileUrl"));
-       doc.setData(LocalDate.parse(body.get("data")));
-        doc.setImporto(Double.parseDouble(body.get("importo")));
+        doc.setNome(nome);
+        doc.setImporto(importoNum);
+        doc.setFileUrl(fileUrl);
+        doc.setData(LocalDate.parse(data));
         doc.setCantiere(optCantiere.get());
 
-        if (body.get("faseId") != null && !body.get("faseId").isBlank()) {
-            faseLavorativaRepository.findById(Long.parseLong(body.get("faseId")))
-                .ifPresent(doc::setFase);
-        }
+        if (faseId != null && !faseId.isBlank())
+            faseLavorativaRepository.findById(Long.parseLong(faseId)).ifPresent(doc::setFase);
 
         return ResponseEntity.ok(documentoContabileRepository.save(doc));
     }
@@ -71,9 +108,8 @@ public class DocContabiliController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminaDocumentoContabile(@PathVariable Long cantiereId,
                                                         @PathVariable Long id) {
-        if (!documentoContabileRepository.existsById(id)) {
+        if (!documentoContabileRepository.existsById(id))
             return ResponseEntity.status(404).body(Map.of("errore", "Documento non trovato"));
-        }
         documentoContabileRepository.deleteById(id);
         return ResponseEntity.ok(Map.of("messaggio", "Documento eliminato"));
     }
@@ -82,13 +118,11 @@ public class DocContabiliController {
     public ResponseEntity<?> saldaFattura(@PathVariable Long cantiereId,
                                            @PathVariable Long id) {
         Optional<DocumentoContabile> opt = documentoContabileRepository.findById(id);
-        if (opt.isEmpty()) {
+        if (opt.isEmpty())
             return ResponseEntity.status(404).body(Map.of("errore", "Documento non trovato"));
-        }
         DocumentoContabile doc = opt.get();
-        if (!(doc instanceof Fattura)) {
+        if (!(doc instanceof Fattura))
             return ResponseEntity.badRequest().body(Map.of("errore", "Solo le fatture possono essere saldate"));
-        }
         ((Fattura) doc).setStatoPagamento(StatoFattura.SALDATO);
         return ResponseEntity.ok(documentoContabileRepository.save(doc));
     }

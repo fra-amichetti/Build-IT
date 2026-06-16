@@ -12,4 +12,10 @@ public abstract class DocumentoContabile extends Documento {
 
     public double getImporto() { return importo; }
     public void setImporto(double importo) { this.importo = importo; }
+
+    @Override
+    public boolean validaEstensione(String nomeFile) {
+        if (nomeFile == null) return false;
+        return nomeFile.toLowerCase().endsWith(".pdf");
+    }
 }

@@ -46,4 +46,7 @@ public abstract class Documento {
 
     public FaseLavorativa getFase() { return fase; }
     public void setFase(FaseLavorativa fase) { this.fase = fase; }
+
+    // Polimorfismo: ogni sottoclasse definisce i formati ammessi.
+    public abstract boolean validaEstensione(String nomeFile);
 }
