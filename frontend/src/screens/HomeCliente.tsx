@@ -1,26 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building2, Clock, ArrowRight, HardHat, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Header } from '../components/shared/Header';
 import { Card, CardBody } from '../components/shared/Card';
 import { Button } from '../components/shared/Button';
-import { useApp } from '../context/AppContext';
+import { getElencoCantieriCliente } from '../services/api';
 
 interface HomeClienteProps {
   onViewSites: () => void;
+  utente: any;
 }
 
-export function HomeCliente({ onViewSites }: HomeClienteProps) {
-  const { currentUser, constructionSites } = useApp();
+export function HomeCliente({ onViewSites, utente }: HomeClienteProps) {
+  const [cantieri, setCantieri] = useState<any[]>([]);
 
-  // Filter sites for the current client
-  const clientSites = constructionSites.filter(
-    site => site.emailCliente?.toLowerCase() === currentUser?.email.toLowerCase()
-  );
+  useEffect(() => {
+    if (utente?.email) {
+      getElencoCantieriCliente(utente.email)
+        .then(setCantieri)
+        .catch(console.error);
+    }
+  }, [utente]);
 
-  const activeSites = clientSites.filter(s => s.stato === 'In Corso').length;
-  const delayedSites = clientSites.filter(s => s.stato === 'In Ritardo').length;
-  const completedSites = clientSites.filter(s => s.stato === 'Terminato').length;
-
+  const activeSites = cantieri.filter(s => s.stato === 'IN_CORSO').length;
+  const delayedSites = cantieri.filter(s => s.stato === 'IN_RITARDO').length;
+  const completedSites = cantieri.filter(s => s.stato === 'TERMINATO').length;
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -33,8 +36,7 @@ export function HomeCliente({ onViewSites }: HomeClienteProps) {
               <HardHat className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold mb-1">Benvenuto, {currentUser?.nome}!</h1>
-              <p className="text-red-100">
+            <h1 className="text-2xl font-bold mb-1">Benvenuto, {utente?.nome}!</h1>  <p className="text-red-100">
                 Monitora lo stato dei tuoi cantieri in tempo reale
               </p>
             </div>
@@ -96,7 +98,7 @@ export function HomeCliente({ onViewSites }: HomeClienteProps) {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">I Tuoi Cantieri</h2>
-                  <p className="text-sm text-gray-500">{clientSites.length} cantieri totali</p>
+                  <p className="text-sm text-gray-500">{cantieri.length} cantieri totali</p>
                 </div>
               </div>
 
@@ -106,20 +108,20 @@ export function HomeCliente({ onViewSites }: HomeClienteProps) {
             </div>
 
             {/* Recent Sites Preview */}
-            {clientSites.length === 0 ? (
+            {cantieri.length === 0 ? (
               <div className="text-center py-8">
                 <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500">Non hai cantieri associati</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {clientSites.slice(0, 3).map(site => {
-                  const statusColors = {
-                    'Pianificato': 'bg-gray-100 text-gray-700',
-                    'In Corso': 'bg-blue-100 text-blue-700',
-                    'In Ritardo': 'bg-red-100 text-red-700',
-                    'Terminato': 'bg-green-100 text-green-700',
-                  };
+                {cantieri.slice(0, 3).map(site => {
+                 const statusColors: Record<string, string> = {
+  'PIANIFICATO': 'bg-gray-100 text-gray-700',
+  'IN_CORSO': 'bg-blue-100 text-blue-700',
+  'IN_RITARDO': 'bg-red-100 text-red-700',
+  'TERMINATO': 'bg-green-100 text-green-700',
+};
 
                   return (
                     <div

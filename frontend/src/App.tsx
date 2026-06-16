@@ -111,12 +111,13 @@ const isReadOnly = loggedUser?.ruolo === 'CLIENTE';
     />
   );
 
-      case 'homeCliente':
-        return (
-          <HomeCliente
-            onViewSites={() => setCurrentScreen('cantieri')}
-          />
-        );
+     case 'homeCliente':
+  return (
+    <HomeCliente
+      onViewSites={() => setCurrentScreen('cantieri')}
+      utente={loggedUser}
+    />
+  );
 
       case 'cantieri':
   return (
@@ -131,7 +132,7 @@ const isReadOnly = loggedUser?.ruolo === 'CLIENTE';
       onSelectSite={handleSelectSite}
       onAddSite={canEdit ? () => setCurrentScreen('aggiungiCantiere') : undefined}
       readOnly={isReadOnly}
-      clientEmail={currentUser?.role === 'Cliente' ? currentUser.email : undefined}
+     clientEmail={loggedUser?.ruolo === 'CLIENTE' ? loggedUser.email : undefined}
     />
   );
 
