@@ -1,4 +1,4 @@
-const BASE_URL = 'http://build-it-production.up.railway.app';
+const BASE_URL = 'https://build-it-production.up.railway.app';
 
 // Utente corrente — impostato al login per includere i header X-User-* nelle richieste
 let _currentUser: { email: string; ruolo: string } | null = null;
