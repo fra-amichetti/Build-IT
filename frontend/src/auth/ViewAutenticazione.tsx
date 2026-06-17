@@ -136,45 +136,8 @@ export function ViewAutenticazione({ onSuccess, onRegister }: ViewAutenticazione
           </div>
         </div>
 
-        {/* Demo credentials hint */}
-        <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-800 font-semibold mb-3">Credenziali Demo (clicca per compilare):</p>
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('admin@buildit.it');
-                setPassword('Admin123!');
-              }}
-              className="w-full text-left px-3 py-2 rounded-md bg-white hover:bg-red-100 border border-red-200 transition-colors text-sm"
-            >
-              <strong className="text-red-900">Admin:</strong>{' '}
-              <span className="text-gray-600">admin@buildit.it / Admin123!</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('luca.bianchi@buildit.it');
-                setPassword('Dipendente1!');
-              }}
-              className="w-full text-left px-3 py-2 rounded-md bg-white hover:bg-red-100 border border-red-200 transition-colors text-sm"
-            >
-              <strong className="text-red-900">Dipendente:</strong>{' '}
-              <span className="text-gray-600">luca.bianchi@buildit.it / Dipendente1!</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('mario.conti@email.it');
-                setPassword('Cliente1!');
-              }}
-              className="w-full text-left px-3 py-2 rounded-md bg-white hover:bg-red-100 border border-red-200 transition-colors text-sm"
-            >
-              <strong className="text-red-900">Cliente:</strong>{' '}
-              <span className="text-gray-600">mario.conti@email.it / Cliente1!</span>
-            </button>
-          </div>
-        </div>
+       
+              
       </div>
     </div>
   );

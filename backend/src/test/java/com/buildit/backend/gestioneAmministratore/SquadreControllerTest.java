@@ -4,6 +4,7 @@ import com.buildit.backend.dominio.FaseLavorativa;
 import com.buildit.backend.dominio.Specializzazione;
 import com.buildit.backend.dominio.Squadra;
 import com.buildit.backend.dominio.StatoFase;
+import com.buildit.backend.log.Logger;
 import com.buildit.backend.repository.FaseLavorativaRepository;
 import com.buildit.backend.repository.SquadraRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,12 +30,15 @@ class SquadreControllerTest {
 
     @Mock private SquadraRepository       squadraRepository;
     @Mock private FaseLavorativaRepository faseLavorativaRepository;
+    @Mock private Logger                  logger;
 
     private SquadreController controller;
 
+    private static final String EMAIL_ADMIN = "admin@buildit.it";
+
     @BeforeEach
     void setUp() {
-        controller = new SquadreController(squadraRepository, faseLavorativaRepository);
+        controller = new SquadreController(squadraRepository, faseLavorativaRepository, logger);
     }
 
     // ── getSquadre ────────────────────────────────────────────────────────────
@@ -62,7 +66,7 @@ class SquadreControllerTest {
                 "specializzazione", "MURATORI",
                 "numeroComponenti", "4",
                 "nomeReferente", "Luca Verdi"
-        ));
+        ), EMAIL_ADMIN);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(squadraRepository).save(any());
@@ -75,7 +79,7 @@ class SquadreControllerTest {
                 "specializzazione", "ELETTRICISTI",
                 "numeroComponenti", "3",
                 "nomeReferente", "Test"
-        ));
+        ), EMAIL_ADMIN);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).containsIgnoringCase("nome");
@@ -88,7 +92,7 @@ class SquadreControllerTest {
     void eliminaSquadra_404_seNonTrovata() {
         when(squadraRepository.findById(99L)).thenReturn(Optional.empty());
 
-        ResponseEntity<?> risposta = controller.eliminaSquadra(99L);
+        ResponseEntity<?> risposta = controller.eliminaSquadra(99L, EMAIL_ADMIN);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         verify(squadraRepository, never()).deleteById(any());
@@ -103,7 +107,7 @@ class SquadreControllerTest {
         faseAttiva.setSquadra(s);
         when(faseLavorativaRepository.findAll()).thenReturn(List.of(faseAttiva));
 
-        ResponseEntity<?> risposta = controller.eliminaSquadra(1L);
+        ResponseEntity<?> risposta = controller.eliminaSquadra(1L, EMAIL_ADMIN);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).containsIgnoringCase("attive");
@@ -119,7 +123,7 @@ class SquadreControllerTest {
         fasePian.setSquadra(s);
         when(faseLavorativaRepository.findAll()).thenReturn(List.of(fasePian));
 
-        ResponseEntity<?> risposta = controller.eliminaSquadra(2L);
+        ResponseEntity<?> risposta = controller.eliminaSquadra(2L, EMAIL_ADMIN);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -130,7 +134,7 @@ class SquadreControllerTest {
         when(squadraRepository.findById(3L)).thenReturn(Optional.of(s));
         when(faseLavorativaRepository.findAll()).thenReturn(Collections.emptyList());
 
-        ResponseEntity<?> risposta = controller.eliminaSquadra(3L);
+        ResponseEntity<?> risposta = controller.eliminaSquadra(3L, EMAIL_ADMIN);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(squadraRepository).deleteById(3L);
@@ -145,7 +149,7 @@ class SquadreControllerTest {
         faseTerminata.setSquadra(s);
         when(faseLavorativaRepository.findAll()).thenReturn(List.of(faseTerminata));
 
-        ResponseEntity<?> risposta = controller.eliminaSquadra(4L);
+        ResponseEntity<?> risposta = controller.eliminaSquadra(4L, EMAIL_ADMIN);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(squadraRepository).deleteById(4L);

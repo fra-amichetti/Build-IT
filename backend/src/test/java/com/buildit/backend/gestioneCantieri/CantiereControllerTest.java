@@ -4,6 +4,7 @@ import com.buildit.backend.dominio.Cantiere;
 import com.buildit.backend.dominio.FaseLavorativa;
 import com.buildit.backend.dominio.StatoCantiere;
 import com.buildit.backend.dominio.StatoFase;
+import com.buildit.backend.log.Logger;
 import com.buildit.backend.repository.CantiereRepository;
 import com.buildit.backend.repository.FaseLavorativaRepository;
 import com.buildit.backend.repository.SquadraRepository;
@@ -32,15 +33,18 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CantiereControllerTest {
 
-    @Mock private CantiereRepository cantiereRepository;
+    @Mock private CantiereRepository       cantiereRepository;
     @Mock private FaseLavorativaRepository faseLavorativaRepository;
-    @Mock private SquadraRepository squadraRepository;
+    @Mock private SquadraRepository        squadraRepository;
+    @Mock private Logger                   logger;
 
     private CantiereController controller;
 
+    private static final String EMAIL = "admin@buildit.it";
+
     @BeforeEach
     void setUp() {
-        controller = new CantiereController(cantiereRepository, faseLavorativaRepository, squadraRepository);
+        controller = new CantiereController(cantiereRepository, faseLavorativaRepository, squadraRepository, logger);
     }
 
     // ── terminaCantiere ────────────────────────────────────────────────────────
@@ -53,7 +57,7 @@ class CantiereControllerTest {
         FaseLavorativa fasiInCorso = fase(StatoFase.IN_CORSO);
         when(faseLavorativaRepository.findByCantiereId(1L)).thenReturn(List.of(fasiInCorso));
 
-        ResponseEntity<?> risposta = controller.terminaCantiere(1L);
+        ResponseEntity<?> risposta = controller.terminaCantiere(1L, EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).contains("fase");
@@ -66,10 +70,10 @@ class CantiereControllerTest {
         when(cantiereRepository.findById(1L)).thenReturn(Optional.of(cantiere));
 
         FaseLavorativa fasePianificata = fase(StatoFase.PIANIFICATA);
-        FaseLavorativa faseTerminata = fase(StatoFase.TERMINATA);
+        FaseLavorativa faseTerminata   = fase(StatoFase.TERMINATA);
         when(faseLavorativaRepository.findByCantiereId(1L)).thenReturn(List.of(fasePianificata, faseTerminata));
 
-        ResponseEntity<?> risposta = controller.terminaCantiere(1L);
+        ResponseEntity<?> risposta = controller.terminaCantiere(1L, EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -81,7 +85,7 @@ class CantiereControllerTest {
         when(faseLavorativaRepository.findByCantiereId(1L)).thenReturn(List.of(fase(StatoFase.TERMINATA)));
         when(cantiereRepository.save(any())).thenReturn(cantiere);
 
-        ResponseEntity<?> risposta = controller.terminaCantiere(1L);
+        ResponseEntity<?> risposta = controller.terminaCantiere(1L, EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -93,7 +97,7 @@ class CantiereControllerTest {
         when(faseLavorativaRepository.findByCantiereId(1L)).thenReturn(Collections.emptyList());
         when(cantiereRepository.save(any())).thenReturn(cantiere);
 
-        ResponseEntity<?> risposta = controller.terminaCantiere(1L);
+        ResponseEntity<?> risposta = controller.terminaCantiere(1L, EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -118,7 +122,7 @@ class CantiereControllerTest {
                 "squadraId", "5"
         );
 
-        ResponseEntity<?> risposta = controller.aggiungiFase(1L, body);
+        ResponseEntity<?> risposta = controller.aggiungiFase(1L, body, EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).contains("squadra");
@@ -144,7 +148,7 @@ class CantiereControllerTest {
                 "squadraId", "5"
         );
 
-        ResponseEntity<?> risposta = controller.aggiungiFase(1L, body);
+        ResponseEntity<?> risposta = controller.aggiungiFase(1L, body, EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -163,11 +167,10 @@ class CantiereControllerTest {
                 "dataFinePrevista", "2025-05-31"
         );
 
-        ResponseEntity<?> risposta = controller.aggiungiFase(1L, body);
+        ResponseEntity<?> risposta = controller.aggiungiFase(1L, body, EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
-        verify(faseLavorativaRepository, never()).findOverlappingBySquadra(anyLong(), anyLong(),
-                any(), any());
+        verify(faseLavorativaRepository, never()).findOverlappingBySquadra(anyLong(), anyLong(), any(), any());
     }
 
     // ── utility ───────────────────────────────────────────────────────────────

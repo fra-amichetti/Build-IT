@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { AppProvider, useApp } from './context/AppContext';
 import { ViewAutenticazione } from './auth/ViewAutenticazione';
 import { ViewRegistrazione } from './auth/ViewRegistrazione';
 import { HomeAmministratore } from './screens/HomeAmministratore';
@@ -62,7 +61,7 @@ type Screen =
   | 'log';
 
 function AppContent() {
-  const { loginReal, logoutReal } = useApp();
+  
   const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
   const [selectedSite, setSelectedSite] = useState<ConstructionSite | null>(null);
   const [selectedPhase, setSelectedPhase] = useState<WorkPhase | null>(null);
@@ -76,7 +75,7 @@ function AppContent() {
     try {
       const { user, screen, siteId, phaseId }: SessionData = JSON.parse(raw);
       setLoggedUser(user);
-      loginReal(user);
+      
       setCurrentUser({ email: user.email, ruolo: user.ruolo });
 
       const NEEDS_SITE: Screen[] = [
@@ -126,7 +125,7 @@ function AppContent() {
     setSelectedPhase(null);
     setCurrentScreen('auth');
     setCurrentUser(null);
-    logoutReal();
+    
   };
 
   useEffect(() => {
@@ -136,7 +135,7 @@ function AppContent() {
 
   const handleLoginSuccess = (role: string, user: any) => {
     setLoggedUser(user);
-    loginReal(user);
+    
     setCurrentUser({ email: user.email, ruolo: user.ruolo });
     if (role === 'Amministratore') {
       setCurrentScreen('homeAdmin');
@@ -424,9 +423,7 @@ onSelectPhase={handleSelectPhase}
 
 function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <AppContent />
   );
 }
 
