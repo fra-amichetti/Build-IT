@@ -2,6 +2,7 @@ package com.buildit.backend.gestioneCantieri;
 
 import com.buildit.backend.dominio.Cantiere;
 import com.buildit.backend.dominio.StatoCantiere;
+import com.buildit.backend.log.Logger;
 import com.buildit.backend.repository.CantiereRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,12 +25,15 @@ import static org.mockito.Mockito.*;
 class ListaCantieriControllerTest {
 
     @Mock private CantiereRepository cantiereRepository;
+    @Mock private Logger             logger;
 
     private ListaCantieriController controller;
 
+    private static final String EMAIL = "admin@buildit.it";
+
     @BeforeEach
     void setUp() {
-        controller = new ListaCantieriController(cantiereRepository);
+        controller = new ListaCantieriController(cantiereRepository, logger);
     }
 
     // ── getElencoCantieri ─────────────────────────────────────────────────────
@@ -46,7 +50,6 @@ class ListaCantieriControllerTest {
 
     @Test
     void getElencoCantieri_aggiornaStatoInRitardoEPersiste() {
-        // Cantiere in corso con data fine scaduta → deve diventare IN_RITARDO
         Cantiere scaduto = cantiereCon(StatoCantiere.IN_CORSO, LocalDate.now().minusDays(1));
         when(cantiereRepository.findAll()).thenReturn(List.of(scaduto));
         when(cantiereRepository.save(any())).thenReturn(scaduto);
@@ -80,7 +83,7 @@ class ListaCantieriControllerTest {
                 "dataInizioPrevista", "2026-07-01",
                 "dataFinePrevista", "2026-12-31",
                 "emailCliente", "cliente@test.it"
-        ));
+        ), EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(cantiereRepository).save(any());
@@ -93,7 +96,7 @@ class ListaCantieriControllerTest {
                 "indirizzo", "Via Test 1",
                 "dataInizioPrevista", "2026-07-01",
                 "dataFinePrevista", "2026-12-31"
-        ));
+        ), EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).containsIgnoringCase("nome");
@@ -107,7 +110,7 @@ class ListaCantieriControllerTest {
                 "indirizzo", "",
                 "dataInizioPrevista", "2026-07-01",
                 "dataFinePrevista", "2026-12-31"
-        ));
+        ), EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).containsIgnoringCase("indirizzo");
@@ -115,13 +118,12 @@ class ListaCantieriControllerTest {
 
     @Test
     void aggiungiCantiere_400_seDataFineAntecedente() {
-        // fine < inizio → errore logico
         ResponseEntity<?> risposta = controller.aggiungiCantiere(Map.of(
                 "nome", "Palazzo",
                 "indirizzo", "Via Test 1",
                 "dataInizioPrevista", "2026-12-31",
                 "dataFinePrevista", "2026-01-01"
-        ));
+        ), EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).containsIgnoringCase("fine");
@@ -129,13 +131,12 @@ class ListaCantieriControllerTest {
 
     @Test
     void aggiungiCantiere_400_seDataFineUgualeAInizio() {
-        // fine == inizio → non è "successiva"
         ResponseEntity<?> risposta = controller.aggiungiCantiere(Map.of(
                 "nome", "Palazzo",
                 "indirizzo", "Via Test 1",
                 "dataInizioPrevista", "2026-07-01",
                 "dataFinePrevista", "2026-07-01"
-        ));
+        ), EMAIL);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }

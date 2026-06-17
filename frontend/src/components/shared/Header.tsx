@@ -1,5 +1,4 @@
 import { LogOut, Menu, User } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -7,7 +6,14 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
-  const { realUser, logoutReal } = useApp();
+  const session = JSON.parse(sessionStorage.getItem('buildit_session') || 'null');
+  const realUser = session?.user ?? null;
+
+  const logoutReal = () => {
+    sessionStorage.removeItem('buildit_session');
+    window.dispatchEvent(new CustomEvent('buildit_logout'));
+  };
+
   const displayUser = realUser;
 
   return (
@@ -46,14 +52,7 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
           {/* User Info & Actions */}
           {displayUser && (
             <div className="flex items-center gap-3">
-              {displayUser.ruolo === 'AMMINISTRATORE' && (
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('navigaAlLog'))}
-                  className="px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                >
-                  Visualizza Log
-                </button>
-              )}
+              
               <div className="hidden sm:flex flex-col items-end">
                 <span className="text-sm font-medium text-gray-900">
                   {displayUser.nome} {displayUser.cognome}
@@ -66,7 +65,14 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                 <User className="w-5 h-5 text-red-700" />
               </div>
-
+{displayUser.ruolo === 'AMMINISTRATORE' && (
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('navigaAlLog'))}
+                  className="px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                >
+                  Visualizza Log
+                </button>
+              )}
               <button
                 onClick={logoutReal}
                 className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
