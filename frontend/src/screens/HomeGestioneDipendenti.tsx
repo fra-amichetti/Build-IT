@@ -25,14 +25,18 @@ export function HomeGestioneDipendenti({ onBack, embedded }: HomeGestioneDipende
     password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filter only employees
   const [employees, setEmployees] = useState<any[]>([]);
 
-useEffect(() => {
-  getDipendenti().then(setEmployees).catch(console.error);
-}, []);
+  useEffect(() => {
+    getDipendenti()
+      .then(setEmployees)
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -63,7 +67,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   if (!validateForm()) return;
 
-  setIsLoading(true);
+  setIsSaving(true);
 
   try {
     await aggiungiDipendente(formData.nome, formData.cognome, formData.email, formData.password, '');
@@ -76,7 +80,7 @@ setErrors({});
     setErrors({ email: err.message || 'Errore durante il salvataggio' });
   }
 
-  setIsLoading(false);
+  setIsSaving(false);
 };
 
   const handleDelete = () => {
@@ -171,7 +175,7 @@ setErrors({});
                   <Button type="button" variant="secondary" onClick={() => setShowAddForm(false)}>
                     Annulla
                   </Button>
-                  <Button type="submit" isLoading={isLoading}>
+                  <Button type="submit" isLoading={isSaving}>
                     Salva Dipendente
                   </Button>
                 </div>
@@ -181,7 +185,12 @@ setErrors({});
         )}
 
         {/* Employees List */}
-        {employees.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-500">Caricamento...</p>
+          </div>
+        ) : employees.length === 0 ? (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
               <Users className="w-8 h-8 text-gray-400" />

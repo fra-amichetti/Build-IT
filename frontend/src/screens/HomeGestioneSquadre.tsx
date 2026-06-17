@@ -32,18 +32,22 @@ export function HomeGestioneSquadre({ onBack, embedded }: HomeGestioneSquadrePro
     nomeReferente: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     caricaSquadre();
   }, []);
 
   const caricaSquadre = async () => {
+    setIsLoading(true);
     try {
       const data = await getSquadre();
       if (Array.isArray(data)) setSquadre(data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -62,7 +66,7 @@ export function HomeGestioneSquadre({ onBack, embedded }: HomeGestioneSquadrePro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    setIsLoading(true);
+    setIsSaving(true);
     try {
       await aggiungiSquadra(
         formData.nome,
@@ -77,7 +81,7 @@ export function HomeGestioneSquadre({ onBack, embedded }: HomeGestioneSquadrePro
     } catch (err: any) {
       setErrors({ nome: err.message || 'Errore durante il salvataggio' });
     }
-    setIsLoading(false);
+    setIsSaving(false);
   };
 
   const handleDelete = async () => {
@@ -169,7 +173,7 @@ export function HomeGestioneSquadre({ onBack, embedded }: HomeGestioneSquadrePro
                 </div>
                 <div className="flex gap-3 pt-2">
                   <Button type="button" variant="secondary" onClick={() => setShowAddForm(false)}>Annulla</Button>
-                  <Button type="submit" isLoading={isLoading}>Salva Squadra</Button>
+                  <Button type="submit" isLoading={isSaving}>Salva Squadra</Button>
                 </div>
               </form>
             </CardBody>
@@ -188,7 +192,12 @@ export function HomeGestioneSquadre({ onBack, embedded }: HomeGestioneSquadrePro
           </Card>
         )}
 
-        {squadre.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-500">Caricamento...</p>
+          </div>
+        ) : squadre.length === 0 ? (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
               <Users className="w-8 h-8 text-gray-400" />
