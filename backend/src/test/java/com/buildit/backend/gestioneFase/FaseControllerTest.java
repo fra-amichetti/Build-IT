@@ -21,9 +21,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+
+import com.buildit.backend.dominio.Squadra;
 
 @ExtendWith(MockitoExtension.class)
 class FaseControllerTest {
@@ -98,6 +98,141 @@ class FaseControllerTest {
         ResponseEntity<?> risposta = controller.modificaFase(10L, Map.of("nome", "Test"));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(faseLavorativaRepository, never()).save(any());
+    }
+
+    // ── getDettagliFase ───────────────────────────────────────────────────────
+
+    @Test
+    void getDettagliFase_ok_seEsiste() {
+        FaseLavorativa fase = fasePianificata(10L);
+        when(faseLavorativaRepository.findById(10L)).thenReturn(Optional.of(fase));
+
+        ResponseEntity<?> risposta = controller.getDettagliFase(10L);
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(risposta.getBody()).isEqualTo(fase);
+    }
+
+    @Test
+    void getDettagliFase_404_seNonTrovata() {
+        when(faseLavorativaRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResponseEntity<?> risposta = controller.getDettagliFase(99L);
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    // ── avviaFase ─────────────────────────────────────────────────────────────
+
+    @Test
+    void avviaFase_ok_seFasePianificata() {
+        FaseLavorativa fase = fasePianificata(20L);
+        when(faseLavorativaRepository.findById(20L)).thenReturn(Optional.of(fase));
+        when(faseLavorativaRepository.save(any())).thenReturn(fase);
+
+        ResponseEntity<?> risposta = controller.avviaFase(20L);
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(fase.getStato()).isEqualTo(StatoFase.IN_CORSO);
+        assertThat(fase.getDataInizioEffettiva()).isEqualTo(LocalDate.now());
+    }
+
+    @Test
+    void avviaFase_400_seFaseNonPianificata() {
+        FaseLavorativa fase = fase(StatoFase.IN_CORSO, 20L);
+        when(faseLavorativaRepository.findById(20L)).thenReturn(Optional.of(fase));
+
+        ResponseEntity<?> risposta = controller.avviaFase(20L);
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(errore(risposta)).containsIgnoringCase("pianificata");
+        verify(faseLavorativaRepository, never()).save(any());
+    }
+
+    @Test
+    void avviaFase_404_seNonTrovata() {
+        when(faseLavorativaRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResponseEntity<?> risposta = controller.avviaFase(99L);
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    // ── terminaFase ───────────────────────────────────────────────────────────
+
+    @Test
+    void terminaFase_ok_seFaseInCorso() {
+        FaseLavorativa fase = fase(StatoFase.IN_CORSO, 30L);
+        when(faseLavorativaRepository.findById(30L)).thenReturn(Optional.of(fase));
+        when(faseLavorativaRepository.save(any())).thenReturn(fase);
+
+        ResponseEntity<?> risposta = controller.terminaFase(30L);
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(fase.getStato()).isEqualTo(StatoFase.TERMINATA);
+        assertThat(fase.getDataFineEffettiva()).isEqualTo(LocalDate.now());
+    }
+
+    @Test
+    void terminaFase_400_seGiaTerminata() {
+        FaseLavorativa fase = fase(StatoFase.TERMINATA, 30L);
+        when(faseLavorativaRepository.findById(30L)).thenReturn(Optional.of(fase));
+
+        ResponseEntity<?> risposta = controller.terminaFase(30L);
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(errore(risposta)).containsIgnoringCase("terminata");
+        verify(faseLavorativaRepository, never()).save(any());
+    }
+
+    @Test
+    void terminaFase_404_seNonTrovata() {
+        when(faseLavorativaRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResponseEntity<?> risposta = controller.terminaFase(99L);
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    // ── assegnaSquadra ────────────────────────────────────────────────────────
+
+    @Test
+    void assegnaSquadra_ok_seEntrambiEsistono() {
+        FaseLavorativa fase = fasePianificata(40L);
+        Squadra squadra = new Squadra();
+        squadra.setId(5L);
+        squadra.setNome("Squadra Alfa");
+
+        when(faseLavorativaRepository.findById(40L)).thenReturn(Optional.of(fase));
+        when(squadraRepository.findById(5L)).thenReturn(Optional.of(squadra));
+        when(faseLavorativaRepository.save(any())).thenReturn(fase);
+
+        ResponseEntity<?> risposta = controller.assegnaSquadra(40L, Map.of("squadraId", "5"));
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(fase.getSquadra()).isEqualTo(squadra);
+    }
+
+    @Test
+    void assegnaSquadra_404_seFaseNonTrovata() {
+        when(faseLavorativaRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResponseEntity<?> risposta = controller.assegnaSquadra(99L, Map.of("squadraId", "5"));
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        verify(faseLavorativaRepository, never()).save(any());
+    }
+
+    @Test
+    void assegnaSquadra_404_seSquadraNonTrovata() {
+        FaseLavorativa fase = fasePianificata(40L);
+        when(faseLavorativaRepository.findById(40L)).thenReturn(Optional.of(fase));
+        when(squadraRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResponseEntity<?> risposta = controller.assegnaSquadra(40L, Map.of("squadraId", "99"));
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         verify(faseLavorativaRepository, never()).save(any());
     }
 
