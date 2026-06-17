@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Clock, ArrowRight, HardHat, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Building2, Clock, ArrowRight, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Header } from '../components/shared/Header';
 import { Card, CardBody } from '../components/shared/Card';
 import { Button } from '../components/shared/Button';
@@ -31,15 +31,9 @@ export function HomeCliente({ onViewSites, utente }: HomeClienteProps) {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Banner */}
         <div className="bg-gradient-to-r from-red-700 to-red-800 rounded-2xl p-8 text-white shadow-lg mb-8">
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-              <HardHat className="w-8 h-8" />
-            </div>
-            <div>
-            <h1 className="text-2xl font-bold mb-1">Benvenuto, {utente?.nome}!</h1>  <p className="text-red-100">
-                Monitora lo stato dei tuoi cantieri in tempo reale
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold mb-1">Benvenuto, {utente?.nome}!</h1>
+            <p className="text-red-100">Monitora lo stato dei tuoi cantieri in tempo reale</p>
           </div>
         </div>
 
@@ -144,24 +138,7 @@ export function HomeCliente({ onViewSites, utente }: HomeClienteProps) {
           </CardBody>
         </Card>
 
-        {/* Alert for delayed sites */}
-        {delayedSites > 0 && (
-          <Card className="border-red-200 bg-red-50">
-            <CardBody className="p-5">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-red-900 mb-1">Attenzione!</h3>
-                  <p className="text-sm text-red-700">
-                    Hai {delayedSites} cantiere{delayedSites > 1 ? 'i' : ''} in ritardo. Contatta l'azienda per maggiori informazioni.
-                  </p>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        )}
+    
       </main>
     </div>
   );

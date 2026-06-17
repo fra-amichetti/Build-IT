@@ -9,7 +9,6 @@ import { Button } from '../components/shared/Button';
 import { Card, CardBody, CardHeader } from '../components/shared/Card';
 import { StatusBadge, getSiteStatusVariant, getPhaseStatusVariant } from '../components/shared/StatusBadge';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
-import { useApp } from '../context/AppContext';
 import { ConstructionSite, WorkPhase } from '../types';
 import { iniziaLavoriCantiere, terminaCantiere } from '../services/api';
 import { getFasi } from '../services/api';
@@ -41,7 +40,7 @@ export function HomeCantiere({
   readOnly = false,
 }: HomeCantiereProps) {
   const [activeTab, setActiveTab] = useState<TabType>('fasi');
-const { getTeamById } = useApp();
+
 const [phases, setPhases] = useState<any[]>([]);
 
 useEffect(() => {

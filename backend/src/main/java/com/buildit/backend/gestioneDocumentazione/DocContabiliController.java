@@ -1,6 +1,9 @@
 package com.buildit.backend.gestioneDocumentazione;
 
 import com.buildit.backend.dominio.*;
+import com.buildit.backend.log.EsitoOperazione;
+import com.buildit.backend.log.Logger;
+import com.buildit.backend.log.TipoOperazione;
 import com.buildit.backend.repository.*;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,18 +22,21 @@ import java.util.Optional;
 public class DocContabiliController {
 
     private final DocumentoContabileRepository documentoContabileRepository;
-    private final CantiereRepository cantiereRepository;
-    private final FaseLavorativaRepository faseLavorativaRepository;
-    private final FileStorageService fileStorageService;
+    private final CantiereRepository           cantiereRepository;
+    private final FaseLavorativaRepository     faseLavorativaRepository;
+    private final FileStorageService           fileStorageService;
+    private final Logger                       logger;
 
     public DocContabiliController(DocumentoContabileRepository documentoContabileRepository,
                                    CantiereRepository cantiereRepository,
                                    FaseLavorativaRepository faseLavorativaRepository,
-                                   FileStorageService fileStorageService) {
+                                   FileStorageService fileStorageService,
+                                   Logger logger) {
         this.documentoContabileRepository = documentoContabileRepository;
-        this.cantiereRepository = cantiereRepository;
-        this.faseLavorativaRepository = faseLavorativaRepository;
-        this.fileStorageService = fileStorageService;
+        this.cantiereRepository           = cantiereRepository;
+        this.faseLavorativaRepository     = faseLavorativaRepository;
+        this.fileStorageService           = fileStorageService;
+        this.logger                       = logger;
     }
 
     @GetMapping
@@ -50,9 +56,9 @@ public class DocContabiliController {
             @RequestParam String importo,
             @RequestParam MultipartFile file,
             @RequestParam String data,
-            @RequestParam(required = false) String faseId) {
+            @RequestParam(required = false) String faseId,
+            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
 
-        // Validazioni di campo
         if (nome == null || nome.isBlank())
             return ResponseEntity.badRequest().body(Map.of("errore", "Il nome è obbligatorio"));
         if (nome.length() > 32)
@@ -67,11 +73,10 @@ public class DocContabiliController {
         if (importoNum <= 0)
             return ResponseEntity.badRequest().body(Map.of("errore", "L'importo deve essere maggiore di 0"));
 
-        // Validazione estensione (polimorfismo): per i contabili solo .pdf
         DocumentoContabile validatore = "Fattura".equals(tipo) ? new Fattura() : new Preventivo();
         if (!validatore.validaEstensione(file.getOriginalFilename()))
             return ResponseEntity.badRequest().body(Map.of("errore",
-                    "Formato non supportato. I documenti contabili devono essere in formato .pdf"));
+                "Formato non supportato. I documenti contabili devono essere in formato .pdf"));
 
         Optional<Cantiere> optCantiere = cantiereRepository.findById(cantiereId);
         if (optCantiere.isEmpty())
@@ -102,7 +107,11 @@ public class DocContabiliController {
         if (faseId != null && !faseId.isBlank())
             faseLavorativaRepository.findById(Long.parseLong(faseId)).ifPresent(doc::setFase);
 
-        return ResponseEntity.ok(documentoContabileRepository.save(doc));
+        DocumentoContabile salvato = documentoContabileRepository.save(doc);
+        logger.log(email, TipoOperazione.CARICA_DOCUMENTO_CONTABILE,
+            tipo + " '" + salvato.getNome() + "' (€" + importoNum + ") caricata nel cantiere id=" + cantiereId,
+            EsitoOperazione.SUCCESSO);
+        return ResponseEntity.ok(salvato);
     }
 
     @DeleteMapping("/{id}")

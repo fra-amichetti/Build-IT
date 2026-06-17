@@ -1,6 +1,9 @@
 package com.buildit.backend.gestioneDocumentazione;
 
 import com.buildit.backend.dominio.*;
+import com.buildit.backend.log.EsitoOperazione;
+import com.buildit.backend.log.Logger;
+import com.buildit.backend.log.TipoOperazione;
 import com.buildit.backend.repository.*;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,18 +22,21 @@ import java.util.Optional;
 public class DocTecniciController {
 
     private final DocumentoTecnicoRepository documentoTecnicoRepository;
-    private final CantiereRepository cantiereRepository;
-    private final FaseLavorativaRepository faseLavorativaRepository;
-    private final FileStorageService fileStorageService;
+    private final CantiereRepository         cantiereRepository;
+    private final FaseLavorativaRepository   faseLavorativaRepository;
+    private final FileStorageService         fileStorageService;
+    private final Logger                     logger;
 
     public DocTecniciController(DocumentoTecnicoRepository documentoTecnicoRepository,
                                  CantiereRepository cantiereRepository,
                                  FaseLavorativaRepository faseLavorativaRepository,
-                                 FileStorageService fileStorageService) {
+                                 FileStorageService fileStorageService,
+                                 Logger logger) {
         this.documentoTecnicoRepository = documentoTecnicoRepository;
-        this.cantiereRepository = cantiereRepository;
-        this.faseLavorativaRepository = faseLavorativaRepository;
-        this.fileStorageService = fileStorageService;
+        this.cantiereRepository         = cantiereRepository;
+        this.faseLavorativaRepository   = faseLavorativaRepository;
+        this.fileStorageService         = fileStorageService;
+        this.logger                     = logger;
     }
 
     @GetMapping
@@ -49,9 +55,9 @@ public class DocTecniciController {
             @RequestParam(required = false) String tipologia,
             @RequestParam MultipartFile file,
             @RequestParam String data,
-            @RequestParam(required = false) String faseId) {
+            @RequestParam(required = false) String faseId,
+            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
 
-        // Validazioni di campo
         if (nome == null || nome.isBlank())
             return ResponseEntity.badRequest().body(Map.of("errore", "Il nome è obbligatorio"));
         if (nome.length() > 32)
@@ -59,11 +65,10 @@ public class DocTecniciController {
         if (tipologia != null && tipologia.length() > 100)
             return ResponseEntity.badRequest().body(Map.of("errore", "La tipologia non può superare 100 caratteri"));
 
-        // Validazione estensione (polimorfismo)
         DocumentoTecnico validatore = new DocumentoTecnico();
         if (!validatore.validaEstensione(file.getOriginalFilename()))
             return ResponseEntity.badRequest().body(Map.of("errore",
-                    "Formato non supportato. Usa .pdf, .jpg o .png"));
+                "Formato non supportato. Usa .pdf, .jpg o .png"));
 
         Optional<Cantiere> optCantiere = cantiereRepository.findById(cantiereId);
         if (optCantiere.isEmpty())
@@ -86,7 +91,11 @@ public class DocTecniciController {
         if (faseId != null && !faseId.isBlank())
             faseLavorativaRepository.findById(Long.parseLong(faseId)).ifPresent(doc::setFase);
 
-        return ResponseEntity.ok(documentoTecnicoRepository.save(doc));
+        DocumentoTecnico salvato = documentoTecnicoRepository.save(doc);
+        logger.log(email, TipoOperazione.CARICA_DOCUMENTO_TECNICO,
+            "Documento tecnico '" + salvato.getNome() + "' caricato nel cantiere id=" + cantiereId,
+            EsitoOperazione.SUCCESSO);
+        return ResponseEntity.ok(salvato);
     }
 
     @DeleteMapping("/{id}")

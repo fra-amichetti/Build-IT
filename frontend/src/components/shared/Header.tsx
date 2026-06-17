@@ -46,6 +46,14 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
           {/* User Info & Actions */}
           {displayUser && (
             <div className="flex items-center gap-3">
+              {displayUser.ruolo === 'AMMINISTRATORE' && (
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('navigaAlLog'))}
+                  className="px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                >
+                  Visualizza Log
+                </button>
+              )}
               <div className="hidden sm:flex flex-col items-end">
                 <span className="text-sm font-medium text-gray-900">
                   {displayUser.nome} {displayUser.cognome}

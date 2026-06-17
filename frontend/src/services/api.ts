@@ -1,5 +1,20 @@
 const BASE_URL = 'http://localhost:8080/api';
 
+// Utente corrente — impostato al login per includere i header X-User-* nelle richieste
+let _currentUser: { email: string; ruolo: string } | null = null;
+
+export function setCurrentUser(user: { email: string; ruolo: string } | null) {
+  _currentUser = user;
+}
+
+function authHeaders(): Record<string, string> {
+  if (!_currentUser) return {};
+  return {
+    'X-User-Email': _currentUser.email,
+    'X-User-Role':  _currentUser.ruolo,
+  };
+}
+
 export async function login(email: string, password: string) {
   const response = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
@@ -345,5 +360,39 @@ export async function saldaFattura(cantiereId: number, id: number) {
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.errore || 'Errore durante il saldo della fattura');
+  return data;
+}
+
+// ── LOG DI SISTEMA (solo Amministratore) ──────────────────────────────────────
+
+export interface LogFiltri {
+  email?: string;
+  operazione?: string;
+  da?: string;
+  a?: string;
+}
+
+export async function getLogs(filtri?: LogFiltri) {
+  const params = new URLSearchParams();
+  if (filtri?.email)      params.set('email',      filtri.email);
+  if (filtri?.operazione) params.set('operazione', filtri.operazione);
+  if (filtri?.da)         params.set('da',         filtri.da);
+  if (filtri?.a)          params.set('a',          filtri.a);
+
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  const response = await fetch(`${BASE_URL}/log${qs}`, {
+    headers: authHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore nel caricamento dei log');
+  return data;
+}
+
+export async function getAccessiSospetti() {
+  const response = await fetch(`${BASE_URL}/log/sospetti`, {
+    headers: authHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore nel caricamento degli accessi sospetti');
   return data;
 }

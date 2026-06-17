@@ -11,6 +11,7 @@ import { HomeDocumentiContabili } from './screens/HomeDocumentiContabili';
 import { HomeGestioneDipendenti } from './screens/HomeGestioneDipendenti';
 import { HomeGestioneSquadre } from './screens/HomeGestioneSquadre';
 import { ViewMostraStatistiche } from './screens/ViewMostraStatistiche';
+import { ViewVisualizzazioneLog } from './screens/ViewVisualizzazioneLog';
 import { HomeCliente } from './screens/HomeCliente';
 import { ViewAggiungiCantiere } from './forms/ViewAggiungiCantiere';
 import { ViewModificaCantiere } from './forms/ViewModificaCantiere';
@@ -21,7 +22,7 @@ import { ViewTerminaFaseCantiere } from './forms/ViewTerminaFaseCantiere';
 import { ViewAggiungiDocumentoTecnico } from './forms/ViewAggiungiDocumentoTecnico';
 import { ViewAggiungiDocumentoContabile } from './forms/ViewAggiungiDocumentoContabile';
 import { ConstructionSite, WorkPhase } from './types';
-import { terminaCantiere, getDettagliCantiere, getDettagliFase } from './services/api';
+import { terminaCantiere, getDettagliCantiere, getDettagliFase, setCurrentUser } from './services/api';
 
 const SESSION_KEY = 'buildit_session';
 
@@ -57,7 +58,8 @@ type Screen =
   | 'aggiungiDocumentoContabile'
   | 'dipendenti'
   | 'squadre'
-  | 'statistiche';
+  | 'statistiche'
+  | 'log';
 
 function AppContent() {
   const { loginReal, logoutReal } = useApp();
@@ -75,6 +77,7 @@ function AppContent() {
       const { user, screen, siteId, phaseId }: SessionData = JSON.parse(raw);
       setLoggedUser(user);
       loginReal(user);
+      setCurrentUser({ email: user.email, ruolo: user.ruolo });
 
       const NEEDS_SITE: Screen[] = [
         'cantiere', 'modificaCantiere', 'terminaCantiere', 'aggiungiFase',
@@ -122,6 +125,7 @@ function AppContent() {
     setSelectedSite(null);
     setSelectedPhase(null);
     setCurrentScreen('auth');
+    setCurrentUser(null);
     logoutReal();
   };
 
@@ -133,6 +137,7 @@ function AppContent() {
   const handleLoginSuccess = (role: string, user: any) => {
     setLoggedUser(user);
     loginReal(user);
+    setCurrentUser({ email: user.email, ruolo: user.ruolo });
     if (role === 'Amministratore') {
       setCurrentScreen('homeAdmin');
     } else if (role === 'Dipendente') {
@@ -168,8 +173,16 @@ useEffect(() => {
     else if (isReadOnly) setCurrentScreen('homeCliente');
   };
 
+  const handleLogEvent = () => {
+    if (isAdmin) setCurrentScreen('log');
+  };
+
   window.addEventListener('tornaAllaHome', handleHomeEvent);
-  return () => window.removeEventListener('tornaAllaHome', handleHomeEvent);
+  window.addEventListener('navigaAlLog', handleLogEvent);
+  return () => {
+    window.removeEventListener('tornaAllaHome', handleHomeEvent);
+    window.removeEventListener('navigaAlLog', handleLogEvent);
+  };
 }, [isAdmin, isDipendente, isReadOnly]);
   // Render current screen
   const renderScreen = () => {
@@ -374,6 +387,13 @@ onSelectPhase={handleSelectPhase}
       case 'statistiche':
         return (
           <ViewMostraStatistiche
+            onBack={() => setCurrentScreen('homeAdmin')}
+          />
+        );
+
+      case 'log':
+        return (
+          <ViewVisualizzazioneLog
             onBack={() => setCurrentScreen('homeAdmin')}
           />
         );

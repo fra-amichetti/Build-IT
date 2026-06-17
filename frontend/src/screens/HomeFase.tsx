@@ -7,7 +7,6 @@ import { Header } from '../components/shared/Header';
 import { Button } from '../components/shared/Button';
 import { Card, CardBody } from '../components/shared/Card';
 import { StatusBadge, getPhaseStatusVariant } from '../components/shared/StatusBadge';
-import { useApp } from '../context/AppContext';
 import { WorkPhase, ConstructionSite, TechnicalDocument, AccountingDocument } from '../types';
 import { avviaFase } from '../services/api';
 
@@ -28,12 +27,7 @@ export function HomeFase({
   onCompletePhase,
   readOnly = false,
 }: HomeFaseProps) {
-  const { getTeamById, technicalDocuments, accountingDocuments } = useApp();
-
-  const team = phase.squadra || (phase.squadraId ? getTeamById(phase.squadraId) : undefined);
-  const phaseTechDocs = technicalDocuments.filter(d => d.faseId === phase.id);
-  const phaseAccDocs = accountingDocuments.filter(d => d.faseId === phase.id);
-
+  const team = phase.squadra;
   const formatDate = (dateStr?: string) => {
   if (!dateStr) return '—';
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('it-IT', {
@@ -186,40 +180,7 @@ export function HomeFase({
           </Card>
         )}
 
-        {/* Documents Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardBody className="p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">Documenti Tecnici</p>
-                    <p className="text-sm text-gray-500">{phaseTechDocs.length} documenti</p>
-                  </div>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody className="p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">Documenti Contabili</p>
-                    <p className="text-sm text-gray-500">{phaseAccDocs.length} documenti</p>
-                  </div>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
+       
       </main>
     </div>
   );

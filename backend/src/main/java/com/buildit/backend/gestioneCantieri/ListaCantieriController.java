@@ -4,15 +4,12 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+import com.buildit.backend.log.EsitoOperazione;
+import com.buildit.backend.log.Logger;
+import com.buildit.backend.log.TipoOperazione;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.buildit.backend.dominio.Cantiere;
 import com.buildit.backend.dominio.StatoCantiere;
@@ -24,52 +21,54 @@ import com.buildit.backend.repository.CantiereRepository;
 public class ListaCantieriController {
 
     private final CantiereRepository cantiereRepository;
+    private final Logger             logger;
 
-    public ListaCantieriController(CantiereRepository cantiereRepository) {
+    public ListaCantieriController(CantiereRepository cantiereRepository, Logger logger) {
         this.cantiereRepository = cantiereRepository;
+        this.logger             = logger;
     }
 
     @GetMapping
-public ResponseEntity<?> getElencoCantieri() {
-    List<Cantiere> cantieri = cantiereRepository.findAll();
-    for (Cantiere c : cantieri) {
-        if (c.verificaRitardo()) {
-            c.setStato(StatoCantiere.IN_RITARDO);
-            cantiereRepository.save(c);
+    public ResponseEntity<?> getElencoCantieri() {
+        List<Cantiere> cantieri = cantiereRepository.findAll();
+        for (Cantiere c : cantieri) {
+            if (c.verificaRitardo()) {
+                c.setStato(StatoCantiere.IN_RITARDO);
+                cantiereRepository.save(c);
+            }
         }
-    }
-    return ResponseEntity.ok(cantieri);
-}
-    @GetMapping(params = "email")
-    public ResponseEntity<?> getElencoCantieriByCliente(@RequestParam String email) {
-        List<Cantiere> cantieri = cantiereRepository.findByEmailCliente(email);
         return ResponseEntity.ok(cantieri);
     }
 
-    @PostMapping
-    public ResponseEntity<?> aggiungiCantiere(@RequestBody Map<String, String> body) {
-        String nome = body.get("nome");
-        String indirizzo = body.get("indirizzo");
-        String dataInizioPrevistaStr = body.get("dataInizioPrevista");
-        String dataFinePrevistaStr = body.get("dataFinePrevista");
-        String emailCliente = body.get("emailCliente");
+    @GetMapping(params = "email")
+    public ResponseEntity<?> getElencoCantieriByCliente(@RequestParam String email) {
+        return ResponseEntity.ok(cantiereRepository.findByEmailCliente(email));
+    }
 
-        if (nome == null || nome.isBlank()) {
+    @PostMapping
+    public ResponseEntity<?> aggiungiCantiere(
+            @RequestBody Map<String, String> body,
+            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
+
+        String nome                 = body.get("nome");
+        String indirizzo            = body.get("indirizzo");
+        String dataInizioPrevistaStr = body.get("dataInizioPrevista");
+        String dataFinePrevistaStr   = body.get("dataFinePrevista");
+        String emailCliente         = body.get("emailCliente");
+
+        if (nome == null || nome.isBlank())
             return ResponseEntity.badRequest().body(Map.of("errore", "Il nome è obbligatorio"));
-        }
-        if (indirizzo == null || indirizzo.isBlank()) {
+        if (indirizzo == null || indirizzo.isBlank())
             return ResponseEntity.badRequest().body(Map.of("errore", "L'indirizzo è obbligatorio"));
-        }
-        if (dataInizioPrevistaStr == null || dataFinePrevistaStr == null) {
+        if (dataInizioPrevistaStr == null || dataFinePrevistaStr == null)
             return ResponseEntity.badRequest().body(Map.of("errore", "Le date sono obbligatorie"));
-        }
 
         LocalDate dataInizio = LocalDate.parse(dataInizioPrevistaStr);
-        LocalDate dataFine = LocalDate.parse(dataFinePrevistaStr);
+        LocalDate dataFine   = LocalDate.parse(dataFinePrevistaStr);
 
-        if (!dataFine.isAfter(dataInizio)) {
-            return ResponseEntity.badRequest().body(Map.of("errore", "La data di fine deve essere successiva alla data di inizio"));
-        }
+        if (!dataFine.isAfter(dataInizio))
+            return ResponseEntity.badRequest()
+                .body(Map.of("errore", "La data di fine deve essere successiva alla data di inizio"));
 
         Cantiere cantiere = new Cantiere();
         cantiere.setNome(nome);
@@ -79,7 +78,11 @@ public ResponseEntity<?> getElencoCantieri() {
         cantiere.setEmailCliente(emailCliente);
         cantiere.setStato(StatoCantiere.PIANIFICATO);
 
-        return ResponseEntity.ok(cantiereRepository.save(cantiere));
+        Cantiere salvato = cantiereRepository.save(cantiere);
+        logger.log(email, TipoOperazione.CREA_CANTIERE,
+            "Nuovo cantiere creato: '" + salvato.getNome() + "' in " + salvato.getIndirizzo(),
+            EsitoOperazione.SUCCESSO);
+        return ResponseEntity.ok(salvato);
     }
 
     @Scheduled(cron = "0 0 0 * * *")

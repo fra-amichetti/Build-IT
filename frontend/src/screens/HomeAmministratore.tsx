@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, Shield } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { Header } from '../components/shared/Header';
 import { Card, CardBody } from '../components/shared/Card';
 import { Button } from '../components/shared/Button';
@@ -49,14 +49,9 @@ export function HomeAmministratore({ onNavigate, nomeUtente }: HomeAmministrator
         {/* Welcome Section */}
         <div className="mb-8">
           <div className="bg-gradient-to-r from-red-700 to-red-800 rounded-2xl p-8 text-white shadow-lg">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
-                <Shield className="w-7 h-7" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Benvenuto, {nomeUtente}!</h1>
-                <p className="text-red-100">Pannello Amministratore</p>
-              </div>
+            <div className="mb-4">
+              <h1 className="text-2xl font-bold">Benvenuto, {nomeUtente}!</h1>
+              <p className="text-red-100">Pannello Amministratore</p>
             </div>
             <p className="text-red-100 mb-6">
               Gestisci tutti gli aspetti della tua azienda edile da un unico pannello.
