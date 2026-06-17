@@ -5,7 +5,7 @@ import { Button } from '../components/shared/Button';
 import { Card, CardBody } from '../components/shared/Card';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
 import { ConstructionSite } from '../types';
-import { getDocumentiTecnici, eliminaDocumentoTecnico } from '../services/api';
+import { getDocumentiTecnici, eliminaDocumentoTecnico, FILE_BASE_URL } from '../services/api';
 import { ExternalLink } from 'lucide-react';
 
 interface HomeDocumentiTecniciProps {
@@ -136,7 +136,7 @@ export function HomeDocumentiTecnici({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => window.open(doc.fileUrl, '_blank')}
+                        onClick={() => window.open(FILE_BASE_URL + doc.fileUrl, '_blank')}
                        icon={<ExternalLink className="w-4 h-4" />}
                       >
                         <span className="hidden sm:inline">Apri</span>

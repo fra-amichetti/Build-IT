@@ -6,7 +6,7 @@ import { Card, CardBody } from '../components/shared/Card';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
 import { StatusBadge, getPaymentStatusVariant } from '../components/shared/StatusBadge';
 import { ConstructionSite } from '../types';
-import { getDocumentiContabili, eliminaDocumentoContabile, saldaFattura } from '../services/api';
+import { getDocumentiContabili, eliminaDocumentoContabile, saldaFattura, FILE_BASE_URL } from '../services/api';
 import { ExternalLink } from 'lucide-react';
 
 interface HomeDocumentiContabiliProps {
@@ -174,7 +174,7 @@ export function HomeDocumentiContabili({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => window.open(doc.fileUrl, '_blank')}
+                          onClick={() => window.open(FILE_BASE_URL + doc.fileUrl, '_blank')}
                          icon={<ExternalLink className="w-4 h-4" />}
                         >
                         <span className="hidden sm:inline">Apri</span>
