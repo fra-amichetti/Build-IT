@@ -1,22 +1,7 @@
 package com.buildit.backend.config;
 
-import com.buildit.backend.dominio.Amministratore;
-import com.buildit.backend.dominio.Cantiere;
-import com.buildit.backend.dominio.DocumentoTecnico;
-import com.buildit.backend.dominio.FaseLavorativa;
-import com.buildit.backend.dominio.Fattura;
-import com.buildit.backend.dominio.Preventivo;
-import com.buildit.backend.dominio.Squadra;
-import com.buildit.backend.dominio.Specializzazione;
-import com.buildit.backend.dominio.StatoCantiere;
-import com.buildit.backend.dominio.StatoFase;
-import com.buildit.backend.dominio.StatoFattura;
-import com.buildit.backend.repository.CantiereRepository;
-import com.buildit.backend.repository.DocumentoContabileRepository;
-import com.buildit.backend.repository.DocumentoTecnicoRepository;
-import com.buildit.backend.repository.FaseLavorativaRepository;
-import com.buildit.backend.repository.SquadraRepository;
-import com.buildit.backend.repository.UtenteRepository;
+import com.buildit.backend.dominio.*;
+import com.buildit.backend.repository.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,8 +11,18 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Popola il database con dati di prototipo che coprono tutte le casistiche:
+ *   - 1 Amministratore, 3 Clienti (con account), 4 Dipendenti
+ *   - 5 Cantieri: PIANIFICATO · IN_CORSO · IN_CORSO · IN_RITARDO · TERMINATO
+ *   - 5 Squadre (tutte le specializzazioni)
+ *   - Fasi in tutti gli stati: PIANIFICATA · IN_CORSO · TERMINATA
+ *   - Documenti tecnici (tutte le 6 tipologie) e contabili (fatture + preventivi)
+ */
 @Configuration
 public class DataLoader {
+
+    private static final String PDF_SAMPLE = "https://www.w3.org/WAI/WCAG21/Techniques/pdf/sample.pdf";
 
     @Bean
     public CommandLineRunner loadData(UtenteRepository utenteRepository,
@@ -40,350 +35,441 @@ public class DataLoader {
         return args -> {
 
             // ── 1. AMMINISTRATORE ────────────────────────────────────────────────────
-            if (!utenteRepository.existsByEmail("admin1@buildit.it")) {
+            if (!utenteRepository.existsByEmail("admin@buildit.it")) {
                 Amministratore admin = new Amministratore();
                 admin.setNome("Marco");
                 admin.setCognome("Rossi");
-                admin.setEmail("admin1@buildit.it");
+                admin.setEmail("admin@buildit.it");
                 admin.setHashPassword(passwordEncoder.encode("Admin1234!"));
-                admin.setNomeAzienda("BuildIT2 Srl");
+                admin.setNomeAzienda("BuildIT Srl");
                 utenteRepository.save(admin);
-                System.out.println("Admin creato!");
             }
 
-            // ── 2. CANTIERI ──────────────────────────────────────────────────────────
-            if (cantiereRepository.findAll().isEmpty()) {
-                Cantiere c1 = new Cantiere();
-                c1.setNome("Residenza");
-                c1.setIndirizzo("Via Roma 12, Milano");
-                c1.setDataInizioPrevista(LocalDate.of(2025, 1, 10));
-                c1.setDataFinePrevista(LocalDate.of(2025, 12, 31));
-                c1.setEmailCliente("mario.conti@email.it");
-                c1.setStato(StatoCantiere.IN_CORSO);
-                c1.setDataInizioEffettiva(LocalDate.of(2025, 1, 15));
-                cantiereRepository.save(c1);
-
-                Cantiere c2 = new Cantiere();
-                c2.setNome("Palazzo Medici");
-                c2.setIndirizzo("Corso Buenos Aires 45, Milano");
-                c2.setDataInizioPrevista(LocalDate.of(2025, 3, 1));
-                c2.setDataFinePrevista(LocalDate.of(2025, 6, 30));
-                c2.setEmailCliente("luigi.ferrari@email.it");
-                c2.setStato(StatoCantiere.IN_RITARDO);
-                c2.setDataInizioEffettiva(LocalDate.of(2025, 3, 5));
-                cantiereRepository.save(c2);
-
-                Cantiere c3 = new Cantiere();
-                c3.setNome("Villa Serena");
-                c3.setIndirizzo("Via Garibaldi 8, Bergamo");
-                c3.setDataInizioPrevista(LocalDate.of(2025, 9, 1));
-                c3.setDataFinePrevista(LocalDate.of(2026, 6, 30));
-                c3.setEmailCliente("mario.conti@email.it");
-                c3.setStato(StatoCantiere.PIANIFICATO);
-                cantiereRepository.save(c3);
-
-                Cantiere c4 = new Cantiere();
-                c4.setNome("Centro Commerciale Nord");
-                c4.setIndirizzo("Via Industriale 100, Monza");
-                c4.setDataInizioPrevista(LocalDate.of(2024, 1, 1));
-                c4.setDataFinePrevista(LocalDate.of(2024, 12, 31));
-                c4.setEmailCliente("anna.bianchi@email.it");
-                c4.setStato(StatoCantiere.TERMINATO);
-                c4.setDataInizioEffettiva(LocalDate.of(2024, 1, 10));
-                c4.setDataFineEffettiva(LocalDate.of(2024, 12, 20));
-                cantiereRepository.save(c4);
-
-                System.out.println("Cantieri di test creati!");
+            // ── 2. CLIENTI ───────────────────────────────────────────────────────────
+            // Ogni cliente può autenticarsi e vedere i propri cantieri.
+            if (!utenteRepository.existsByEmail("mario.conti@email.it")) {
+                Cliente c = new Cliente();
+                c.setNome("Mario"); c.setCognome("Conti");
+                c.setEmail("mario.conti@email.it");
+                c.setHashPassword(passwordEncoder.encode("Cliente1!"));
+                utenteRepository.save(c);
+            }
+            if (!utenteRepository.existsByEmail("luigi.ferrari@email.it")) {
+                Cliente c = new Cliente();
+                c.setNome("Luigi"); c.setCognome("Ferrari");
+                c.setEmail("luigi.ferrari@email.it");
+                c.setHashPassword(passwordEncoder.encode("Cliente1!"));
+                utenteRepository.save(c);
+            }
+            if (!utenteRepository.existsByEmail("anna.bianchi@email.it")) {
+                Cliente c = new Cliente();
+                c.setNome("Anna"); c.setCognome("Bianchi");
+                c.setEmail("anna.bianchi@email.it");
+                c.setHashPassword(passwordEncoder.encode("Cliente1!"));
+                utenteRepository.save(c);
             }
 
-            // ── 3. SQUADRE ───────────────────────────────────────────────────────────
+            // ── 3. DIPENDENTI ────────────────────────────────────────────────────────
+            if (!utenteRepository.existsByEmail("luca.esposito@buildit.it")) {
+                Dipendente d = new Dipendente();
+                d.setNome("Luca"); d.setCognome("Esposito");
+                d.setEmail("luca.esposito@buildit.it");
+                d.setHashPassword(passwordEncoder.encode("Dip123456!"));
+                d.setIncarico("Capocantiere");
+                utenteRepository.save(d);
+            }
+            if (!utenteRepository.existsByEmail("sara.marino@buildit.it")) {
+                Dipendente d = new Dipendente();
+                d.setNome("Sara"); d.setCognome("Marino");
+                d.setEmail("sara.marino@buildit.it");
+                d.setHashPassword(passwordEncoder.encode("Dip123456!"));
+                d.setIncarico("Geometra");
+                utenteRepository.save(d);
+            }
+            if (!utenteRepository.existsByEmail("paolo.greco@buildit.it")) {
+                Dipendente d = new Dipendente();
+                d.setNome("Paolo"); d.setCognome("Greco");
+                d.setEmail("paolo.greco@buildit.it");
+                d.setHashPassword(passwordEncoder.encode("Dip123456!"));
+                d.setIncarico("Direttore Tecnico");
+                utenteRepository.save(d);
+            }
+            if (!utenteRepository.existsByEmail("elena.ricci@buildit.it")) {
+                Dipendente d = new Dipendente();
+                d.setNome("Elena"); d.setCognome("Ricci");
+                d.setEmail("elena.ricci@buildit.it");
+                d.setHashPassword(passwordEncoder.encode("Dip123456!"));
+                d.setIncarico("Contabile");
+                utenteRepository.save(d);
+            }
+
+            // ── 4. SQUADRE ───────────────────────────────────────────────────────────
             if (squadraRepository.findAll().isEmpty()) {
-                Squadra sq1 = new Squadra();
-                sq1.setNome("Squadra Alpha");
-                sq1.setSpecializzazione(Specializzazione.MURATORI);
-                sq1.setNumeroComponenti(5);
-                sq1.setNomeReferente("Mario Rossi");
-                squadraRepository.save(sq1);
-
-                Squadra sq2 = new Squadra();
-                sq2.setNome("Squadra Beta");
-                sq2.setSpecializzazione(Specializzazione.ELETTRICISTI);
-                sq2.setNumeroComponenti(3);
-                sq2.setNomeReferente("Luigi Bianchi");
-                squadraRepository.save(sq2);
-
-                Squadra sq3 = new Squadra();
-                sq3.setNome("Squadra Gamma");
-                sq3.setSpecializzazione(Specializzazione.IDRAULICI);
-                sq3.setNumeroComponenti(4);
-                sq3.setNomeReferente("Anna Verdi");
-                squadraRepository.save(sq3);
-
-                Squadra sq4 = new Squadra();
-                sq4.setNome("Squadra Delta");
-                sq4.setSpecializzazione(Specializzazione.CARPENTIERI);
-                sq4.setNumeroComponenti(6);
-                sq4.setNomeReferente("Carlo Neri");
-                squadraRepository.save(sq4);
-
-                System.out.println("Squadre di test create!");
+                squadraRepository.save(squadra("Squadra Alpha",   Specializzazione.MURATORI,     5, "Mario Fontana"));
+                squadraRepository.save(squadra("Squadra Beta",    Specializzazione.ELETTRICISTI,  3, "Luigi Bianchi"));
+                squadraRepository.save(squadra("Squadra Gamma",   Specializzazione.IDRAULICI,     4, "Anna Verdi"));
+                squadraRepository.save(squadra("Squadra Delta",   Specializzazione.CARPENTIERI,   6, "Carlo Neri"));
+                squadraRepository.save(squadra("Squadra Epsilon", Specializzazione.MURATORI,      4, "Giulia Serra"));
             }
 
-            // ── 4. FASI LAVORATIVE ───────────────────────────────────────────────────
-            // Questo blocco viene eseguito solo se il DB delle fasi è vuoto.
-            // Le squadre devono già esistere (create al passo 3).
+            // ── 5. CANTIERI ──────────────────────────────────────────────────────────
+            if (cantiereRepository.findAll().isEmpty()) {
+
+                // PIANIFICATO — lavori non ancora iniziati
+                Cantiere cVilla = new Cantiere();
+                cVilla.setNome("Villa Serena");
+                cVilla.setIndirizzo("Via Garibaldi 8, Bergamo");
+                cVilla.setDataInizioPrevista(LocalDate.of(2026, 9, 1));
+                cVilla.setDataFinePrevista(LocalDate.of(2027, 6, 30));
+                cVilla.setEmailCliente("mario.conti@email.it");
+                cVilla.setStato(StatoCantiere.PIANIFICATO);
+                cantiereRepository.save(cVilla);
+
+                // IN_CORSO — avanzamento regolare
+                Cantiere cResidenza = new Cantiere();
+                cResidenza.setNome("Residenza La Pace");
+                cResidenza.setIndirizzo("Via Roma 12, Milano");
+                cResidenza.setDataInizioPrevista(LocalDate.of(2025, 1, 10));
+                cResidenza.setDataFinePrevista(LocalDate.of(2025, 12, 31));
+                cResidenza.setEmailCliente("mario.conti@email.it");
+                cResidenza.setStato(StatoCantiere.IN_CORSO);
+                cResidenza.setDataInizioEffettiva(LocalDate.of(2025, 1, 15));
+                cantiereRepository.save(cResidenza);
+
+                // IN_CORSO — secondo cantiere attivo, cliente diverso
+                Cantiere cTorre = new Cantiere();
+                cTorre.setNome("Torre Uffici Milano");
+                cTorre.setIndirizzo("Piazza Duca d'Aosta 6, Milano");
+                cTorre.setDataInizioPrevista(LocalDate.of(2025, 4, 1));
+                cTorre.setDataFinePrevista(LocalDate.of(2026, 3, 31));
+                cTorre.setEmailCliente("luigi.ferrari@email.it");
+                cTorre.setStato(StatoCantiere.IN_CORSO);
+                cTorre.setDataInizioEffettiva(LocalDate.of(2025, 4, 7));
+                cantiereRepository.save(cTorre);
+
+                // IN_RITARDO — scaduto senza completamento
+                Cantiere cPalazzo = new Cantiere();
+                cPalazzo.setNome("Palazzo Medici");
+                cPalazzo.setIndirizzo("Corso Buenos Aires 45, Milano");
+                cPalazzo.setDataInizioPrevista(LocalDate.of(2025, 3, 1));
+                cPalazzo.setDataFinePrevista(LocalDate.of(2025, 6, 30));
+                cPalazzo.setEmailCliente("luigi.ferrari@email.it");
+                cPalazzo.setStato(StatoCantiere.IN_RITARDO);
+                cPalazzo.setDataInizioEffettiva(LocalDate.of(2025, 3, 5));
+                cantiereRepository.save(cPalazzo);
+
+                // TERMINATO — completato con successo
+                Cantiere cCentro = new Cantiere();
+                cCentro.setNome("Centro Commerciale Nord");
+                cCentro.setIndirizzo("Via Industriale 100, Monza");
+                cCentro.setDataInizioPrevista(LocalDate.of(2024, 1, 1));
+                cCentro.setDataFinePrevista(LocalDate.of(2024, 12, 31));
+                cCentro.setEmailCliente("anna.bianchi@email.it");
+                cCentro.setStato(StatoCantiere.TERMINATO);
+                cCentro.setDataInizioEffettiva(LocalDate.of(2024, 1, 10));
+                cCentro.setDataFineEffettiva(LocalDate.of(2024, 12, 20));
+                cantiereRepository.save(cCentro);
+
+                System.out.println("Cantieri creati.");
+            }
+
+            // ── 6. FASI LAVORATIVE ───────────────────────────────────────────────────
             if (faseLavorativaRepository.findAll().isEmpty()) {
                 List<Cantiere> cantieri = cantiereRepository.findAll();
-                List<Squadra> squadre = squadraRepository.findAll();
+                List<Squadra>  squadre  = squadraRepository.findAll();
 
-                Optional<Cantiere> cResidenza = cantieri.stream()
-                        .filter(c -> "Residenza".equals(c.getNome())).findFirst();
-                Optional<Cantiere> cPalazzo = cantieri.stream()
-                        .filter(c -> "Palazzo Medici".equals(c.getNome())).findFirst();
-                Optional<Cantiere> cVilla = cantieri.stream()
-                        .filter(c -> "Villa Serena".equals(c.getNome())).findFirst();
-                Optional<Cantiere> cCentro = cantieri.stream()
-                        .filter(c -> "Centro Commerciale Nord".equals(c.getNome())).findFirst();
+                Cantiere cVilla     = find(cantieri, "Villa Serena");
+                Cantiere cResidenza = find(cantieri, "Residenza La Pace");
+                Cantiere cTorre     = find(cantieri, "Torre Uffici Milano");
+                Cantiere cPalazzo   = find(cantieri, "Palazzo Medici");
+                Cantiere cCentro    = find(cantieri, "Centro Commerciale Nord");
 
-                Optional<Squadra> sAlpha = squadre.stream()
-                        .filter(s -> "Squadra Alpha".equals(s.getNome())).findFirst();
-                Optional<Squadra> sBeta = squadre.stream()
-                        .filter(s -> "Squadra Beta".equals(s.getNome())).findFirst();
-                Optional<Squadra> sGamma = squadre.stream()
-                        .filter(s -> "Squadra Gamma".equals(s.getNome())).findFirst();
-                Optional<Squadra> sDelta = squadre.stream()
-                        .filter(s -> "Squadra Delta".equals(s.getNome())).findFirst();
+                Squadra sAlpha   = findS(squadre, "Squadra Alpha");
+                Squadra sBeta    = findS(squadre, "Squadra Beta");
+                Squadra sGamma   = findS(squadre, "Squadra Gamma");
+                Squadra sDelta   = findS(squadre, "Squadra Delta");
+                Squadra sEpsilon = findS(squadre, "Squadra Epsilon");
 
-                // Residenza (IN_CORSO) — 4 fasi
-                if (cResidenza.isPresent()) {
-                    Cantiere c = cResidenza.get();
+                // ── Villa Serena (PIANIFICATO) — 3 fasi tutte pianificate ────────────
+                if (cVilla != null) {
+                    fase(faseLavorativaRepository, "Demolizioni e scavi",
+                         "Demolizione strutture esistenti e scavi preparatori",
+                         LocalDate.of(2026, 9, 1), LocalDate.of(2026, 10, 31),
+                         null, null, StatoFase.PIANIFICATA, cVilla, sDelta);
 
-                    FaseLavorativa f1 = new FaseLavorativa();
-                    f1.setNome("Fondamenta");
-                    f1.setDescrizione("Scavo e getto delle fondamenta");
-                    f1.setDataInizioPrevista(LocalDate.of(2025, 1, 15));
-                    f1.setDataFinePrevista(LocalDate.of(2025, 3, 15));
-                    f1.setDataInizioEffettiva(LocalDate.of(2025, 1, 20));
-                    f1.setDataFineEffettiva(LocalDate.of(2025, 3, 10));
-                    f1.setStato(StatoFase.TERMINATA);
-                    f1.setCantiere(c);
-                    sAlpha.ifPresent(f1::setSquadra);
-                    faseLavorativaRepository.save(f1);
+                    fase(faseLavorativaRepository, "Fondamenta e struttura",
+                         "Getto delle fondamenta e costruzione struttura portante",
+                         LocalDate.of(2026, 11, 1), LocalDate.of(2027, 3, 31),
+                         null, null, StatoFase.PIANIFICATA, cVilla, sAlpha);
 
-                    FaseLavorativa f2 = new FaseLavorativa();
-                    f2.setNome("Struttura portante");
-                    f2.setDescrizione("Costruzione muri portanti e solai");
-                    f2.setDataInizioPrevista(LocalDate.of(2025, 3, 16));
-                    f2.setDataFinePrevista(LocalDate.of(2025, 7, 31));
-                    f2.setDataInizioEffettiva(LocalDate.of(2025, 3, 16));
-                    f2.setStato(StatoFase.IN_CORSO);
-                    f2.setCantiere(c);
-                    sAlpha.ifPresent(f2::setSquadra);
-                    faseLavorativaRepository.save(f2);
-
-                    FaseLavorativa f3 = new FaseLavorativa();
-                    f3.setNome("Impianti");
-                    f3.setDescrizione("Impianti elettrici e idraulici");
-                    f3.setDataInizioPrevista(LocalDate.of(2025, 8, 1));
-                    f3.setDataFinePrevista(LocalDate.of(2025, 10, 31));
-                    f3.setStato(StatoFase.PIANIFICATA);
-                    f3.setCantiere(c);
-                    sBeta.ifPresent(f3::setSquadra);
-                    faseLavorativaRepository.save(f3);
-
-                    FaseLavorativa f4 = new FaseLavorativa();
-                    f4.setNome("Finiture interne");
-                    f4.setDescrizione("Intonaci, pavimentazioni e rifinitura degli interni");
-                    f4.setDataInizioPrevista(LocalDate.of(2025, 11, 1));
-                    f4.setDataFinePrevista(LocalDate.of(2025, 12, 20));
-                    f4.setStato(StatoFase.PIANIFICATA);
-                    f4.setCantiere(c);
-                    sDelta.ifPresent(f4::setSquadra);
-                    faseLavorativaRepository.save(f4);
+                    fase(faseLavorativaRepository, "Finiture e impiantistica",
+                         "Impianti, finiture interne ed esterne",
+                         LocalDate.of(2027, 4, 1), LocalDate.of(2027, 6, 30),
+                         null, null, StatoFase.PIANIFICATA, cVilla, sBeta);
                 }
 
-                // Palazzo Medici (IN_RITARDO) — 3 fasi
-                if (cPalazzo.isPresent()) {
-                    Cantiere c = cPalazzo.get();
+                // ── Residenza La Pace (IN_CORSO) — 4 fasi: T · IC · P · P ───────────
+                if (cResidenza != null) {
+                    fase(faseLavorativaRepository, "Fondamenta",
+                         "Scavo e getto delle fondamenta in c.a.",
+                         LocalDate.of(2025, 1, 15), LocalDate.of(2025, 3, 15),
+                         LocalDate.of(2025, 1, 20), LocalDate.of(2025, 3, 10),
+                         StatoFase.TERMINATA, cResidenza, sAlpha);
 
-                    FaseLavorativa f5 = new FaseLavorativa();
-                    f5.setNome("Fondamenta");
-                    f5.setDescrizione("Scavo e getto delle fondamenta");
-                    f5.setDataInizioPrevista(LocalDate.of(2025, 3, 5));
-                    f5.setDataFinePrevista(LocalDate.of(2025, 4, 30));
-                    f5.setDataInizioEffettiva(LocalDate.of(2025, 3, 5));
-                    f5.setDataFineEffettiva(LocalDate.of(2025, 5, 10));
-                    f5.setStato(StatoFase.TERMINATA);
-                    f5.setCantiere(c);
-                    sBeta.ifPresent(f5::setSquadra);
-                    faseLavorativaRepository.save(f5);
+                    fase(faseLavorativaRepository, "Struttura portante",
+                         "Costruzione muri portanti e solai intermedi",
+                         LocalDate.of(2025, 3, 16), LocalDate.of(2025, 7, 31),
+                         LocalDate.of(2025, 3, 16), null,
+                         StatoFase.IN_CORSO, cResidenza, sEpsilon);
 
-                    FaseLavorativa f6 = new FaseLavorativa();
-                    f6.setNome("Struttura portante");
-                    f6.setDescrizione("Costruzione muri portanti e solai");
-                    f6.setDataInizioPrevista(LocalDate.of(2025, 5, 1));
-                    f6.setDataFinePrevista(LocalDate.of(2025, 6, 30));
-                    f6.setDataInizioEffettiva(LocalDate.of(2025, 5, 15));
-                    f6.setStato(StatoFase.IN_CORSO);
-                    f6.setCantiere(c);
-                    sAlpha.ifPresent(f6::setSquadra);
-                    faseLavorativaRepository.save(f6);
+                    fase(faseLavorativaRepository, "Impianti elettrici e idraulici",
+                         "Posa impianti elettrici, idrosanitari e termici",
+                         LocalDate.of(2025, 8, 1), LocalDate.of(2025, 10, 31),
+                         null, null, StatoFase.PIANIFICATA, cResidenza, sBeta);
 
-                    FaseLavorativa f7 = new FaseLavorativa();
-                    f7.setNome("Impianti e finiture");
-                    f7.setDescrizione("Impianti, intonaci e pavimentazioni");
-                    f7.setDataInizioPrevista(LocalDate.of(2025, 7, 1));
-                    f7.setDataFinePrevista(LocalDate.of(2025, 9, 30));
-                    f7.setStato(StatoFase.PIANIFICATA);
-                    f7.setCantiere(c);
-                    sGamma.ifPresent(f7::setSquadra);
-                    faseLavorativaRepository.save(f7);
+                    fase(faseLavorativaRepository, "Finiture interne",
+                         "Intonaci, pavimentazioni, infissi e rifinitura ambienti",
+                         LocalDate.of(2025, 11, 1), LocalDate.of(2025, 12, 20),
+                         null, null, StatoFase.PIANIFICATA, cResidenza, sDelta);
                 }
 
-                // Villa Serena (PIANIFICATO) — 3 fasi tutte pianificate
-                if (cVilla.isPresent()) {
-                    Cantiere c = cVilla.get();
+                // ── Torre Uffici Milano (IN_CORSO) — 4 fasi: T · T · IC · P ─────────
+                if (cTorre != null) {
+                    fase(faseLavorativaRepository, "Scavi e fondazioni",
+                         "Scavi profondi e fondazioni su pali",
+                         LocalDate.of(2025, 4, 7), LocalDate.of(2025, 6, 30),
+                         LocalDate.of(2025, 4, 7), LocalDate.of(2025, 6, 25),
+                         StatoFase.TERMINATA, cTorre, sAlpha);
 
-                    FaseLavorativa f8 = new FaseLavorativa();
-                    f8.setNome("Demolizioni e scavi");
-                    f8.setDescrizione("Demolizione delle strutture esistenti e scavi");
-                    f8.setDataInizioPrevista(LocalDate.of(2025, 9, 1));
-                    f8.setDataFinePrevista(LocalDate.of(2025, 10, 31));
-                    f8.setStato(StatoFase.PIANIFICATA);
-                    f8.setCantiere(c);
-                    sDelta.ifPresent(f8::setSquadra);
-                    faseLavorativaRepository.save(f8);
+                    fase(faseLavorativaRepository, "Struttura in acciaio",
+                         "Montaggio struttura reticolare in acciaio",
+                         LocalDate.of(2025, 7, 1), LocalDate.of(2025, 10, 31),
+                         LocalDate.of(2025, 7, 1), LocalDate.of(2025, 10, 28),
+                         StatoFase.TERMINATA, cTorre, sDelta);
 
-                    FaseLavorativa f9 = new FaseLavorativa();
-                    f9.setNome("Fondamenta e struttura");
-                    f9.setDescrizione("Getto delle fondamenta e struttura portante");
-                    f9.setDataInizioPrevista(LocalDate.of(2025, 11, 1));
-                    f9.setDataFinePrevista(LocalDate.of(2026, 3, 31));
-                    f9.setStato(StatoFase.PIANIFICATA);
-                    f9.setCantiere(c);
-                    sAlpha.ifPresent(f9::setSquadra);
-                    faseLavorativaRepository.save(f9);
+                    fase(faseLavorativaRepository, "Facciata e copertura",
+                         "Installazione facciata continua e impermeabilizzazione copertura",
+                         LocalDate.of(2025, 11, 1), LocalDate.of(2026, 1, 31),
+                         LocalDate.of(2025, 11, 3), null,
+                         StatoFase.IN_CORSO, cTorre, sGamma);
 
-                    FaseLavorativa f10 = new FaseLavorativa();
-                    f10.setNome("Finiture e impiantistica");
-                    f10.setDescrizione("Impianti, finiture interne ed esterne");
-                    f10.setDataInizioPrevista(LocalDate.of(2026, 4, 1));
-                    f10.setDataFinePrevista(LocalDate.of(2026, 6, 30));
-                    f10.setStato(StatoFase.PIANIFICATA);
-                    f10.setCantiere(c);
-                    sBeta.ifPresent(f10::setSquadra);
-                    faseLavorativaRepository.save(f10);
+                    fase(faseLavorativaRepository, "Impianti e allestimento",
+                         "Impianti tecnologici, allestimento uffici e collaudo",
+                         LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 31),
+                         null, null, StatoFase.PIANIFICATA, cTorre, sBeta);
                 }
 
-                // Centro Commerciale Nord (TERMINATO) — 4 fasi tutte terminate
-                if (cCentro.isPresent()) {
-                    Cantiere c = cCentro.get();
+                // ── Palazzo Medici (IN_RITARDO) — 3 fasi: T · IC · P ────────────────
+                if (cPalazzo != null) {
+                    fase(faseLavorativaRepository, "Fondamenta",
+                         "Scavo e getto fondamenta",
+                         LocalDate.of(2025, 3, 5), LocalDate.of(2025, 4, 30),
+                         LocalDate.of(2025, 3, 5), LocalDate.of(2025, 5, 15), // ritardo in uscita
+                         StatoFase.TERMINATA, cPalazzo, sBeta);
 
-                    FaseLavorativa f11 = new FaseLavorativa();
-                    f11.setNome("Fondamenta");
-                    f11.setDescrizione("Scavo e getto delle fondamenta");
-                    f11.setDataInizioPrevista(LocalDate.of(2024, 1, 10));
-                    f11.setDataFinePrevista(LocalDate.of(2024, 3, 31));
-                    f11.setDataInizioEffettiva(LocalDate.of(2024, 1, 10));
-                    f11.setDataFineEffettiva(LocalDate.of(2024, 3, 28));
-                    f11.setStato(StatoFase.TERMINATA);
-                    f11.setCantiere(c);
-                    sAlpha.ifPresent(f11::setSquadra);
-                    faseLavorativaRepository.save(f11);
+                    fase(faseLavorativaRepository, "Struttura portante",
+                         "Costruzione muri portanti e solai — in ritardo sul programma",
+                         LocalDate.of(2025, 5, 1), LocalDate.of(2025, 6, 30),
+                         LocalDate.of(2025, 5, 20), null,  // inizio in ritardo, ancora aperta
+                         StatoFase.IN_CORSO, cPalazzo, sAlpha);
 
-                    FaseLavorativa f12 = new FaseLavorativa();
-                    f12.setNome("Struttura in acciaio");
-                    f12.setDescrizione("Montaggio della struttura portante in acciaio");
-                    f12.setDataInizioPrevista(LocalDate.of(2024, 4, 1));
-                    f12.setDataFinePrevista(LocalDate.of(2024, 7, 31));
-                    f12.setDataInizioEffettiva(LocalDate.of(2024, 4, 2));
-                    f12.setDataFineEffettiva(LocalDate.of(2024, 7, 25));
-                    f12.setStato(StatoFase.TERMINATA);
-                    f12.setCantiere(c);
-                    sDelta.ifPresent(f12::setSquadra);
-                    faseLavorativaRepository.save(f12);
-
-                    FaseLavorativa f13 = new FaseLavorativa();
-                    f13.setNome("Impianti");
-                    f13.setDescrizione("Impianti elettrici, idraulici e HVAC");
-                    f13.setDataInizioPrevista(LocalDate.of(2024, 8, 1));
-                    f13.setDataFinePrevista(LocalDate.of(2024, 10, 31));
-                    f13.setDataInizioEffettiva(LocalDate.of(2024, 8, 1));
-                    f13.setDataFineEffettiva(LocalDate.of(2024, 10, 28));
-                    f13.setStato(StatoFase.TERMINATA);
-                    f13.setCantiere(c);
-                    sGamma.ifPresent(f13::setSquadra);
-                    faseLavorativaRepository.save(f13);
-
-                    FaseLavorativa f14 = new FaseLavorativa();
-                    f14.setNome("Finiture e collaudo");
-                    f14.setDescrizione("Pavimentazioni, finiture e collaudo finale");
-                    f14.setDataInizioPrevista(LocalDate.of(2024, 11, 1));
-                    f14.setDataFinePrevista(LocalDate.of(2024, 12, 20));
-                    f14.setDataInizioEffettiva(LocalDate.of(2024, 11, 1));
-                    f14.setDataFineEffettiva(LocalDate.of(2024, 12, 18));
-                    f14.setStato(StatoFase.TERMINATA);
-                    f14.setCantiere(c);
-                    sBeta.ifPresent(f14::setSquadra);
-                    faseLavorativaRepository.save(f14);
+                    fase(faseLavorativaRepository, "Impianti e finiture",
+                         "Impianti, intonaci e pavimentazioni",
+                         LocalDate.of(2025, 7, 1), LocalDate.of(2025, 9, 30),
+                         null, null, StatoFase.PIANIFICATA, cPalazzo, sGamma);
                 }
 
-                System.out.println("Fasi lavorative di test create!");
+                // ── Centro Commerciale Nord (TERMINATO) — 4 fasi tutte terminate ─────
+                if (cCentro != null) {
+                    fase(faseLavorativaRepository, "Fondamenta",
+                         "Scavo e getto delle fondamenta",
+                         LocalDate.of(2024, 1, 10), LocalDate.of(2024, 3, 31),
+                         LocalDate.of(2024, 1, 10), LocalDate.of(2024, 3, 28),
+                         StatoFase.TERMINATA, cCentro, sAlpha);
+
+                    fase(faseLavorativaRepository, "Struttura in acciaio",
+                         "Montaggio struttura portante in acciaio",
+                         LocalDate.of(2024, 4, 1), LocalDate.of(2024, 7, 31),
+                         LocalDate.of(2024, 4, 2), LocalDate.of(2024, 7, 25),
+                         StatoFase.TERMINATA, cCentro, sDelta);
+
+                    fase(faseLavorativaRepository, "Impianti",
+                         "Impianti elettrici, idraulici e HVAC",
+                         LocalDate.of(2024, 8, 1), LocalDate.of(2024, 10, 31),
+                         LocalDate.of(2024, 8, 1), LocalDate.of(2024, 10, 28),
+                         StatoFase.TERMINATA, cCentro, sGamma);
+
+                    fase(faseLavorativaRepository, "Finiture e collaudo",
+                         "Pavimentazioni, finiture e collaudo finale",
+                         LocalDate.of(2024, 11, 1), LocalDate.of(2024, 12, 20),
+                         LocalDate.of(2024, 11, 1), LocalDate.of(2024, 12, 18),
+                         StatoFase.TERMINATA, cCentro, sBeta);
+                }
+
+                System.out.println("Fasi create.");
             }
 
-            // ── 5. DOCUMENTI ─────────────────────────────────────────────────────────
+            // ── 7. DOCUMENTI ─────────────────────────────────────────────────────────
             if (documentoTecnicoRepository.findAll().isEmpty()) {
-                Optional<Cantiere> cDoc = cantiereRepository.findAll().stream()
-                        .filter(c -> "Residenza".equals(c.getNome())).findFirst();
+                List<Cantiere> cantieri = cantiereRepository.findAll();
 
-                if (cDoc.isPresent()) {
-                    Cantiere c = cDoc.get();
+                Cantiere cResidenza = find(cantieri, "Residenza La Pace");
+                Cantiere cTorre     = find(cantieri, "Torre Uffici Milano");
+                Cantiere cPalazzo   = find(cantieri, "Palazzo Medici");
+                Cantiere cCentro    = find(cantieri, "Centro Commerciale Nord");
 
-                    DocumentoTecnico d1 = new DocumentoTecnico();
-                    d1.setNome("Pianta piano terra");
-                    d1.setTipologia("pianta");
-                    d1.setFileUrl("https://example.com/pianta.pdf");
-                    d1.setData(LocalDate.of(2025, 1, 20));
-                    d1.setCantiere(c);
-                    documentoTecnicoRepository.save(d1);
-
-                    DocumentoTecnico d2 = new DocumentoTecnico();
-                    d2.setNome("Permesso di costruzione");
-                    d2.setTipologia("prospetto");
-                    d2.setFileUrl("https://example.com/permesso.pdf");
-                    d2.setData(LocalDate.of(2025, 1, 10));
-                    d2.setCantiere(c);
-                    documentoTecnicoRepository.save(d2);
-
-                    Fattura fat1 = new Fattura();
-                    fat1.setNome("Fattura acconto lavori");
-                    fat1.setImporto(15000.0);
-                    fat1.setFileUrl("https://example.com/fattura1.pdf");
-                    fat1.setData(LocalDate.of(2025, 2, 1));
-                    fat1.setStatoPagamento(StatoFattura.SALDATO);
-                    fat1.setCantiere(c);
-                    documentoContabileRepository.save(fat1);
-
-                    Fattura fat2 = new Fattura();
-                    fat2.setNome("Fattura SAL 1");
-                    fat2.setImporto(25000.0);
-                    fat2.setFileUrl("https://example.com/fattura2.pdf");
-                    fat2.setData(LocalDate.of(2025, 4, 15));
-                    fat2.setStatoPagamento(StatoFattura.DA_SALDARE);
-                    fat2.setCantiere(c);
-                    documentoContabileRepository.save(fat2);
-
-                    Preventivo prev1 = new Preventivo();
-                    prev1.setNome("Preventivo impianto elettrico");
-                    prev1.setImporto(8000.0);
-                    prev1.setFileUrl("https://example.com/preventivo1.pdf");
-                    prev1.setData(LocalDate.of(2025, 1, 5));
-                    prev1.setCantiere(c);
-                    documentoContabileRepository.save(prev1);
-
-                    System.out.println("Documenti di test creati!");
+                // ── Residenza La Pace — tutte le 6 tipologie tecniche ────────────────
+                if (cResidenza != null) {
+                    docTecnico(documentoTecnicoRepository, "Pianta piano terra",           "PIANTA",     LocalDate.of(2025, 1, 20), cResidenza);
+                    docTecnico(documentoTecnicoRepository, "Prospetto frontale",            "PROSPETTO",  LocalDate.of(2025, 1, 20), cResidenza);
+                    docTecnico(documentoTecnicoRepository, "Foto stato avanzamento - Marzo","FOTO",       LocalDate.of(2025, 3, 15), cResidenza);
+                    docTecnico(documentoTecnicoRepository, "Permesso di costruire",         "PERMESSO",   LocalDate.of(2025, 1, 10), cResidenza);
+                    docTecnico(documentoTecnicoRepository, "Relazione geologica",           "RELAZIONE",  LocalDate.of(2025, 1, 8),  cResidenza);
+                    docTecnico(documentoTecnicoRepository, "Capitolato d'appalto",          "ALTRO",      LocalDate.of(2025, 1, 5),  cResidenza);
                 }
+
+                // ── Torre Uffici Milano — mix tipologie ──────────────────────────────
+                if (cTorre != null) {
+                    docTecnico(documentoTecnicoRepository, "Pianta piano tipo",             "PIANTA",     LocalDate.of(2025, 4, 1),  cTorre);
+                    docTecnico(documentoTecnicoRepository, "Progetto strutturale",          "RELAZIONE",  LocalDate.of(2025, 3, 28), cTorre);
+                    docTecnico(documentoTecnicoRepository, "Autorizzazione sismica",        "PERMESSO",   LocalDate.of(2025, 3, 20), cTorre);
+                    docTecnico(documentoTecnicoRepository, "Foto cantiere - Luglio",        "FOTO",       LocalDate.of(2025, 7, 31), cTorre);
+                }
+
+                // ── Palazzo Medici — documenti essenziali ────────────────────────────
+                if (cPalazzo != null) {
+                    docTecnico(documentoTecnicoRepository, "Rilievo planimetrico",          "PIANTA",     LocalDate.of(2025, 3, 1),  cPalazzo);
+                    docTecnico(documentoTecnicoRepository, "Relazione tecnica variante",    "RELAZIONE",  LocalDate.of(2025, 6, 1),  cPalazzo);
+                }
+
+                // ── Centro Commerciale Nord — archivio completato ────────────────────
+                if (cCentro != null) {
+                    docTecnico(documentoTecnicoRepository, "Pianta piano terra",            "PIANTA",     LocalDate.of(2024, 1, 5),  cCentro);
+                    docTecnico(documentoTecnicoRepository, "Prospetto principale",          "PROSPETTO",  LocalDate.of(2024, 1, 5),  cCentro);
+                    docTecnico(documentoTecnicoRepository, "Verbale collaudo finale",       "RELAZIONE",  LocalDate.of(2024, 12, 18),cCentro);
+                    docTecnico(documentoTecnicoRepository, "Foto inaugurazione",            "FOTO",       LocalDate.of(2024, 12, 20),cCentro);
+                }
+
+                System.out.println("Documenti tecnici creati.");
             }
+
+            if (documentoContabileRepository.findAll().isEmpty()) {
+                List<Cantiere> cantieri = cantiereRepository.findAll();
+
+                Cantiere cResidenza = find(cantieri, "Residenza La Pace");
+                Cantiere cTorre     = find(cantieri, "Torre Uffici Milano");
+                Cantiere cPalazzo   = find(cantieri, "Palazzo Medici");
+                Cantiere cCentro    = find(cantieri, "Centro Commerciale Nord");
+
+                // ── Residenza La Pace — fatture miste + preventivo ───────────────────
+                if (cResidenza != null) {
+                    preventivo(documentoContabileRepository, "Preventivo impianto elettrico", 8_500.0,  LocalDate.of(2025, 1, 5),  cResidenza);
+                    preventivo(documentoContabileRepository, "Preventivo impianto idraulico",  6_200.0,  LocalDate.of(2025, 1, 6),  cResidenza);
+                    fattura(documentoContabileRepository,   "Fattura acconto lavori",         15_000.0, LocalDate.of(2025, 2, 1),  StatoFattura.SALDATO,     cResidenza);
+                    fattura(documentoContabileRepository,   "Fattura SAL 1 — fondamenta",     28_000.0, LocalDate.of(2025, 4, 1),  StatoFattura.SALDATO,     cResidenza);
+                    fattura(documentoContabileRepository,   "Fattura SAL 2 — struttura",      35_000.0, LocalDate.of(2025, 7, 15), StatoFattura.DA_SALDARE,  cResidenza);
+                    fattura(documentoContabileRepository,   "Fattura finale stimata",         42_000.0, LocalDate.of(2025, 12, 20),StatoFattura.DA_SALDARE,  cResidenza);
+                }
+
+                // ── Torre Uffici Milano — grande commessa ────────────────────────────
+                if (cTorre != null) {
+                    preventivo(documentoContabileRepository, "Preventivo struttura acciaio",  120_000.0, LocalDate.of(2025, 3, 20), cTorre);
+                    preventivo(documentoContabileRepository, "Preventivo facciata continua",   85_000.0, LocalDate.of(2025, 3, 22), cTorre);
+                    fattura(documentoContabileRepository,   "Acconto contratto",               50_000.0, LocalDate.of(2025, 4, 15), StatoFattura.SALDATO,    cTorre);
+                    fattura(documentoContabileRepository,   "SAL 1 — fondazioni",              75_000.0, LocalDate.of(2025, 7, 1),  StatoFattura.SALDATO,    cTorre);
+                    fattura(documentoContabileRepository,   "SAL 2 — struttura acciaio",       80_000.0, LocalDate.of(2025, 11, 1), StatoFattura.DA_SALDARE, cTorre);
+                    fattura(documentoContabileRepository,   "SAL 3 — facciata",                90_000.0, LocalDate.of(2026, 2, 1),  StatoFattura.DA_SALDARE, cTorre);
+                }
+
+                // ── Palazzo Medici — ritardi si riflettono sulle fatture ─────────────
+                if (cPalazzo != null) {
+                    preventivo(documentoContabileRepository, "Preventivo lavori completi",     65_000.0, LocalDate.of(2025, 2, 28), cPalazzo);
+                    fattura(documentoContabileRepository,   "Acconto iniziale",                20_000.0, LocalDate.of(2025, 3, 10), StatoFattura.SALDATO,    cPalazzo);
+                    fattura(documentoContabileRepository,   "SAL 1 — fondamenta",              22_000.0, LocalDate.of(2025, 6, 1),  StatoFattura.DA_SALDARE, cPalazzo);
+                }
+
+                // ── Centro Commerciale Nord — commessa chiusa, tutto saldato ─────────
+                if (cCentro != null) {
+                    preventivo(documentoContabileRepository, "Preventivo iniziale",           200_000.0, LocalDate.of(2023, 12, 10), cCentro);
+                    fattura(documentoContabileRepository,   "Acconto contratto",               60_000.0, LocalDate.of(2024, 1, 15), StatoFattura.SALDATO,    cCentro);
+                    fattura(documentoContabileRepository,   "SAL 1 — fondazioni",              55_000.0, LocalDate.of(2024, 4, 5),  StatoFattura.SALDATO,    cCentro);
+                    fattura(documentoContabileRepository,   "SAL 2 — struttura",               58_000.0, LocalDate.of(2024, 8, 1),  StatoFattura.SALDATO,    cCentro);
+                    fattura(documentoContabileRepository,   "Saldo finale",                    40_000.0, LocalDate.of(2024, 12, 22),StatoFattura.SALDATO,    cCentro);
+                }
+
+                System.out.println("Documenti contabili creati.");
+            }
+
+            System.out.println("=== DataLoader completato ===");
         };
+    }
+
+    // ── helper: Squadra ──────────────────────────────────────────────────────────
+
+    private Squadra squadra(String nome, Specializzazione spec, int componenti, String referente) {
+        Squadra s = new Squadra();
+        s.setNome(nome); s.setSpecializzazione(spec);
+        s.setNumeroComponenti(componenti); s.setNomeReferente(referente);
+        return s;
+    }
+
+    // ── helper: FaseLavorativa ───────────────────────────────────────────────────
+
+    private void fase(FaseLavorativaRepository repo,
+                      String nome, String descrizione,
+                      LocalDate inizioPrev, LocalDate finePrev,
+                      LocalDate inizioEff, LocalDate fineEff,
+                      StatoFase stato, Cantiere cantiere, Squadra squadra) {
+        FaseLavorativa f = new FaseLavorativa();
+        f.setNome(nome); f.setDescrizione(descrizione);
+        f.setDataInizioPrevista(inizioPrev); f.setDataFinePrevista(finePrev);
+        f.setDataInizioEffettiva(inizioEff); f.setDataFineEffettiva(fineEff);
+        f.setStato(stato); f.setCantiere(cantiere);
+        if (squadra != null) f.setSquadra(squadra);
+        repo.save(f);
+    }
+
+    // ── helper: DocumentoTecnico ─────────────────────────────────────────────────
+
+    private void docTecnico(DocumentoTecnicoRepository repo,
+                             String nome, String tipologia,
+                             LocalDate data, Cantiere cantiere) {
+        DocumentoTecnico d = new DocumentoTecnico();
+        d.setNome(nome); d.setTipologia(tipologia);
+        d.setFileUrl(PDF_SAMPLE); d.setData(data); d.setCantiere(cantiere);
+        repo.save(d);
+    }
+
+    // ── helper: Fattura ──────────────────────────────────────────────────────────
+
+    private void fattura(DocumentoContabileRepository repo,
+                         String nome, double importo, LocalDate data,
+                         StatoFattura stato, Cantiere cantiere) {
+        Fattura f = new Fattura();
+        f.setNome(nome); f.setImporto(importo);
+        f.setFileUrl(PDF_SAMPLE); f.setData(data);
+        f.setStatoPagamento(stato); f.setCantiere(cantiere);
+        repo.save(f);
+    }
+
+    // ── helper: Preventivo ───────────────────────────────────────────────────────
+
+    private void preventivo(DocumentoContabileRepository repo,
+                             String nome, double importo, LocalDate data,
+                             Cantiere cantiere) {
+        Preventivo p = new Preventivo();
+        p.setNome(nome); p.setImporto(importo);
+        p.setFileUrl(PDF_SAMPLE); p.setData(data); p.setCantiere(cantiere);
+        repo.save(p);
+    }
+
+    // ── utility ──────────────────────────────────────────────────────────────────
+
+    private static Cantiere find(List<Cantiere> list, String nome) {
+        return list.stream().filter(c -> nome.equals(c.getNome())).findFirst().orElse(null);
+    }
+
+    private static Squadra findS(List<Squadra> list, String nome) {
+        return list.stream().filter(s -> nome.equals(s.getNome())).findFirst().orElse(null);
     }
 }
