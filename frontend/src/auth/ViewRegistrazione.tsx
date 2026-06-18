@@ -7,6 +7,18 @@ interface ViewRegistrazioneProps {
   onBack: () => void;
 }
 
+const PASSWORD_RULES = [
+  { label: 'Almeno 8 caratteri',              test: (p: string) => p.length >= 8 },
+  { label: 'Una lettera maiuscola',            test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'Una lettera minuscola',            test: (p: string) => /[a-z]/.test(p) },
+  { label: 'Un numero',                        test: (p: string) => /[0-9]/.test(p) },
+  { label: 'Un carattere speciale (!@#$%^&*)', test: (p: string) => /[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>\/?]/.test(p) },
+];
+
+function passwordValida(p: string) {
+  return PASSWORD_RULES.every(r => r.test(p));
+}
+
 export function ViewRegistrazione({ onBack }: ViewRegistrazioneProps) {
 
   const [nome, setNome] = useState('');
@@ -37,11 +49,8 @@ export function ViewRegistrazione({ onBack }: ViewRegistrazioneProps) {
 
     if (!password) {
       newErrors.password = 'La password è obbligatoria';
-    } else {
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!?.@/]).{8,}$/;
-      if (!passwordRegex.test(password)) {
-        newErrors.password = 'La password deve contenere almeno 8 caratteri, una maiuscola, una minuscola, un numero e un carattere speciale tra !?.@/';
-      }
+    } else if (!passwordValida(password)) {
+      newErrors.password = 'La password non soddisfa i requisiti minimi';
     }
 
     if (!confirmPassword) {
@@ -140,15 +149,26 @@ const handleSubmit = async (e: React.FormEvent) => {
               required
             />
 
-<Input
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              error={errors.password}
-              helperText="Min. 8 car., 1 Maiusc., 1 Minusc., 1 Num., 1 Spec. tra !?.@/"
-              required
-            />
+<div>
+                <Input
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  error={errors.password}
+                  required
+                />
+                {password.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {PASSWORD_RULES.map(r => (
+                      <li key={r.label} className={`flex items-center gap-1.5 text-xs ${r.test(password) ? 'text-green-600' : 'text-gray-400'}`}>
+                        <span className="text-base leading-none">{r.test(password) ? '✓' : '○'}</span>
+                        {r.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
             <Input
               label="Conferma Password"
