@@ -5,9 +5,7 @@ import { Button } from '../components/shared/Button';
 import { Input, Select, Textarea } from '../components/shared/Input';
 import { Card, CardBody } from '../components/shared/Card';
 import { ConstructionSite } from '../types';
-import { aggiungiFase } from '../services/api';
-
-const BASE_URL = 'http://localhost:8080/api';
+import { aggiungiFase, getSquadre } from '../services/api';
 
 interface ViewAggiungiFaseCantiereProps {
   site: ConstructionSite;
@@ -29,13 +27,10 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-  fetch(`${BASE_URL}/squadre`)
-    .then(r => r.json())
-    .then(data => {
-      if (Array.isArray(data)) setSquadre(data);
-    })
-    .catch(console.error);
-}, []);
+    getSquadre()
+      .then(data => { if (Array.isArray(data)) setSquadre(data); })
+      .catch(console.error);
+  }, []);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -46,6 +41,7 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
     } else if (formData.dataInizioPrevista && new Date(formData.dataFinePrevista) <= new Date(formData.dataInizioPrevista)) {
       newErrors.dataFinePrevista = 'La data di fine deve essere successiva alla data di inizio';
     }
+    if (!formData.squadraId) newErrors.squadraId = 'La squadra è obbligatoria';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -147,8 +143,10 @@ export function ViewAggiungiFaseCantiere({ site, onBack, onSuccess }: ViewAggiun
                 label="Squadra Assegnata"
                 value={formData.squadraId}
                 onChange={(e) => setFormData({ ...formData, squadraId: e.target.value })}
+                error={errors.squadraId}
+                required
                 options={[
-                  { value: '', label: 'Seleziona una squadra...' },
+                  { value: '', label: squadre.length === 0 ? 'Caricamento squadre...' : 'Seleziona una squadra...' },
                   ...squadre.map(s => ({
                     value: s.id.toString(),
                     label: `${s.nome} (${s.specializzazione})`,

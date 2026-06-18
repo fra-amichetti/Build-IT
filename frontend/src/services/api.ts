@@ -75,6 +75,16 @@ export async function getDipendenti() {
   return data;
 }
 
+export async function eliminaDipendente(id: number) {
+  const response = await fetch(`${BASE_URL}/dipendenti/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.errore || 'Errore durante l\'eliminazione');
+  return data;
+}
+
 // ── CANTIERI ──────────────────────────────────────────────
 
 // Tutti i cantieri (admin/dipendente)

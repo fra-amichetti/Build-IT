@@ -23,6 +23,7 @@ public enum TipoOperazione {
     ASSEGNA_SQUADRA,
     // Dipendenti
     CREA_DIPENDENTE,
+    ELIMINA_DIPENDENTE,
     // Documenti
     CARICA_DOCUMENTO_TECNICO,
     CARICA_DOCUMENTO_CONTABILE,

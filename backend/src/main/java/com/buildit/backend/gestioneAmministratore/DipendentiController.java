@@ -55,6 +55,26 @@ public class DipendentiController {
         return ResponseEntity.ok(Map.of("messaggio", "Dipendente aggiunto"));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminaDipendente(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String adminEmail) {
+
+        Optional<Utente> opt = utenteRepository.findById(id);
+        if (opt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("errore", "Dipendente non trovato"));
+        }
+        if (!(opt.get() instanceof Dipendente d)) {
+            return ResponseEntity.status(400).body(Map.of("errore", "L'utente non è un dipendente"));
+        }
+
+        utenteRepository.deleteById(id);
+        logger.log(adminEmail, TipoOperazione.ELIMINA_DIPENDENTE,
+            "Dipendente eliminato: " + d.getNome() + " " + d.getCognome() + " (" + d.getEmail() + ")",
+            EsitoOperazione.SUCCESSO);
+        return ResponseEntity.ok(Map.of("messaggio", "Dipendente eliminato"));
+    }
+
     @GetMapping
     public ResponseEntity<?> getDipendenti() {
         List<Utente> tutti = utenteRepository.findAll();

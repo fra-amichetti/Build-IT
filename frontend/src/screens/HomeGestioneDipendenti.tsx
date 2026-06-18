@@ -6,12 +6,24 @@ import { Button } from '../components/shared/Button';
 import { Input } from '../components/shared/Input';
 import { Card, CardBody, CardHeader } from '../components/shared/Card';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
-import { aggiungiDipendente, getDipendenti } from '../services/api';
+import { aggiungiDipendente, getDipendenti, eliminaDipendente } from '../services/api';
 import { User as UserType } from '../types';
 
 interface HomeGestioneDipendentiProps {
   onBack: () => void;
   embedded?: boolean;
+}
+
+const PASSWORD_RULES = [
+  { label: 'Almeno 8 caratteri',         test: (p: string) => p.length >= 8 },
+  { label: 'Una lettera maiuscola',       test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'Una lettera minuscola',       test: (p: string) => /[a-z]/.test(p) },
+  { label: 'Un numero',                   test: (p: string) => /[0-9]/.test(p) },
+  { label: 'Un carattere speciale (!@#$%^&*)', test: (p: string) => /[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>\/?]/.test(p) },
+];
+
+function passwordValida(p: string) {
+  return PASSWORD_RULES.every(r => r.test(p));
 }
 
 export function HomeGestioneDipendenti({ onBack, embedded }: HomeGestioneDipendentiProps) {
@@ -56,8 +68,8 @@ export function HomeGestioneDipendenti({ onBack, embedded }: HomeGestioneDipende
 
     if (!formData.password) {
       newErrors.password = 'La password è obbligatoria';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'La password deve contenere almeno 8 caratteri';
+    } else if (!passwordValida(formData.password)) {
+      newErrors.password = 'La password non soddisfa i requisiti minimi';
     }
 
     setErrors(newErrors);
@@ -83,12 +95,17 @@ setErrors({});
   setIsSaving(false);
 };
 
-  const handleDelete = () => {
-  if (deleteId) {
-    setEmployees(employees.filter(e => e.id.toString() !== deleteId));
-    setDeleteId(null);
-  }
-};
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await eliminaDipendente(Number(deleteId));
+      setEmployees(employees.filter(e => e.id.toString() !== deleteId));
+    } catch (err: any) {
+      alert(err.message || 'Errore durante l\'eliminazione');
+    } finally {
+      setDeleteId(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -161,15 +178,26 @@ setErrors({});
                   required
                 />
 
-                <Input
-                  label="Password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  error={errors.password}
-                  helperText="Minimo 8 caratteri"
-                  required
-                />
+                <div>
+                  <Input
+                    label="Password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    error={errors.password}
+                    required
+                  />
+                  {formData.password.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {PASSWORD_RULES.map(r => (
+                        <li key={r.label} className={`flex items-center gap-1.5 text-xs ${r.test(formData.password) ? 'text-green-600' : 'text-gray-400'}`}>
+                          <span className="text-base leading-none">{r.test(formData.password) ? '✓' : '○'}</span>
+                          {r.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
 
                 <div className="flex gap-3 pt-2">
                   <Button type="button" variant="secondary" onClick={() => setShowAddForm(false)}>
