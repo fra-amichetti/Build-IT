@@ -10,7 +10,6 @@ import { HomeDocumentiContabili } from './screens/HomeDocumentiContabili';
 import { HomeGestioneDipendenti } from './screens/HomeGestioneDipendenti';
 import { HomeGestioneSquadre } from './screens/HomeGestioneSquadre';
 import { ViewMostraStatistiche } from './screens/ViewMostraStatistiche';
-import { ViewVisualizzazioneLog } from './screens/ViewVisualizzazioneLog';
 import { HomeCliente } from './screens/HomeCliente';
 import { ViewAggiungiCantiere } from './forms/ViewAggiungiCantiere';
 import { ViewModificaCantiere } from './forms/ViewModificaCantiere';
@@ -21,7 +20,7 @@ import { ViewTerminaFaseCantiere } from './forms/ViewTerminaFaseCantiere';
 import { ViewAggiungiDocumentoTecnico } from './forms/ViewAggiungiDocumentoTecnico';
 import { ViewAggiungiDocumentoContabile } from './forms/ViewAggiungiDocumentoContabile';
 import { ConstructionSite, WorkPhase } from './types';
-import { terminaCantiere, getDettagliCantiere, getDettagliFase, setCurrentUser } from './services/api';
+import { terminaCantiere, getDettagliCantiere, getDettagliFase } from './services/api';
 
 const SESSION_KEY = 'buildit_session';
 
@@ -57,11 +56,10 @@ type Screen =
   | 'aggiungiDocumentoContabile'
   | 'dipendenti'
   | 'squadre'
-  | 'statistiche'
-  | 'log';
+  | 'statistiche';
 
 function AppContent() {
-  
+
   const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
   const [selectedSite, setSelectedSite] = useState<ConstructionSite | null>(null);
   const [selectedPhase, setSelectedPhase] = useState<WorkPhase | null>(null);
@@ -75,8 +73,6 @@ function AppContent() {
     try {
       const { user, screen, siteId, phaseId }: SessionData = JSON.parse(raw);
       setLoggedUser(user);
-      
-      setCurrentUser({ email: user.email, ruolo: user.ruolo });
 
       const NEEDS_SITE: Screen[] = [
         'cantiere', 'modificaCantiere', 'terminaCantiere', 'aggiungiFase',
@@ -124,19 +120,15 @@ function AppContent() {
     setSelectedSite(null);
     setSelectedPhase(null);
     setCurrentScreen('auth');
-    setCurrentUser(null);
-    
   };
 
   useEffect(() => {
     window.addEventListener('buildit_logout', handleLogout);
     return () => window.removeEventListener('buildit_logout', handleLogout);
-  }); // dipendenza vuota: handleLogout è stabile tra render
+  });
 
   const handleLoginSuccess = (role: string, user: any) => {
     setLoggedUser(user);
-    
-    setCurrentUser({ email: user.email, ruolo: user.ruolo });
     if (role === 'Amministratore') {
       setCurrentScreen('homeAdmin');
     } else if (role === 'Dipendente') {
@@ -156,34 +148,24 @@ function AppContent() {
     setCurrentScreen('fase');
   };
 
-  // Per sviluppo: permette accesso senza login
-  // Cambia a false per richiedere autenticazione
-  const DEV_MODE = true;
-
   const isAdmin = loggedUser?.ruolo === 'AMMINISTRATORE';
-const isDipendente = loggedUser?.ruolo === 'DIPENDENTE';
-const canEdit = isAdmin || isDipendente;
-const isReadOnly = loggedUser?.ruolo === 'CLIENTE';
+  const isDipendente = loggedUser?.ruolo === 'DIPENDENTE';
+  const canEdit = isAdmin || isDipendente;
+  const isReadOnly = loggedUser?.ruolo === 'CLIENTE';
 
-useEffect(() => {
-  const handleHomeEvent = () => {
-    if (isAdmin) setCurrentScreen('homeAdmin');
-    else if (isDipendente) setCurrentScreen('cantieri');
-    else if (isReadOnly) setCurrentScreen('homeCliente');
-  };
+  useEffect(() => {
+    const handleHomeEvent = () => {
+      if (isAdmin) setCurrentScreen('homeAdmin');
+      else if (isDipendente) setCurrentScreen('cantieri');
+      else if (isReadOnly) setCurrentScreen('homeCliente');
+    };
 
-  const handleLogEvent = () => {
-    if (isAdmin) setCurrentScreen('log');
-  };
+    window.addEventListener('tornaAllaHome', handleHomeEvent);
+    return () => {
+      window.removeEventListener('tornaAllaHome', handleHomeEvent);
+    };
+  }, [isAdmin, isDipendente, isReadOnly]);
 
-  window.addEventListener('tornaAllaHome', handleHomeEvent);
-  window.addEventListener('navigaAlLog', handleLogEvent);
-  return () => {
-    window.removeEventListener('tornaAllaHome', handleHomeEvent);
-    window.removeEventListener('navigaAlLog', handleLogEvent);
-  };
-}, [isAdmin, isDipendente, isReadOnly]);
-  // Render current screen
   const renderScreen = () => {
     switch (currentScreen) {
       case 'auth':
@@ -197,38 +179,38 @@ useEffect(() => {
       case 'register':
         return <ViewRegistrazione onBack={() => setCurrentScreen('auth')} />;
 
-    case 'homeAdmin':
-  return (
-    <HomeAmministratore
-      onNavigate={() => setCurrentScreen('cantieri')}
-      nomeUtente={loggedUser?.nome}
-    />
-  );
+      case 'homeAdmin':
+        return (
+          <HomeAmministratore
+            onNavigate={() => setCurrentScreen('cantieri')}
+            nomeUtente={loggedUser?.nome}
+          />
+        );
 
-     case 'homeCliente':
-  return (
-    <HomeCliente
-      onViewSites={() => setCurrentScreen('cantieri')}
-      utente={loggedUser}
-    />
-  );
+      case 'homeCliente':
+        return (
+          <HomeCliente
+            onViewSites={() => setCurrentScreen('cantieri')}
+            utente={loggedUser}
+          />
+        );
 
       case 'cantieri':
-  return (
-    <HomeListaCantieri
-     onBack={
-  loggedUser?.ruolo === 'DIPENDENTE'
-    ? undefined
-    : loggedUser?.ruolo === 'CLIENTE'
-    ? () => setCurrentScreen('homeCliente')
-    : () => setCurrentScreen('homeAdmin')
-}
-      onSelectSite={handleSelectSite}
-      onAddSite={canEdit ? () => setCurrentScreen('aggiungiCantiere') : undefined}
-      readOnly={isReadOnly}
-     clientEmail={loggedUser?.ruolo === 'CLIENTE' ? loggedUser.email : undefined}
-    />
-  );
+        return (
+          <HomeListaCantieri
+            onBack={
+              loggedUser?.ruolo === 'DIPENDENTE'
+                ? undefined
+                : loggedUser?.ruolo === 'CLIENTE'
+                ? () => setCurrentScreen('homeCliente')
+                : () => setCurrentScreen('homeAdmin')
+            }
+            onSelectSite={handleSelectSite}
+            onAddSite={canEdit ? () => setCurrentScreen('aggiungiCantiere') : undefined}
+            readOnly={isReadOnly}
+            clientEmail={loggedUser?.ruolo === 'CLIENTE' ? loggedUser.email : undefined}
+          />
+        );
 
       case 'cantiere':
         if (!selectedSite) return null;
@@ -236,23 +218,23 @@ useEffect(() => {
           <HomeCantiere
             site={selectedSite}
             onBack={() => setCurrentScreen('cantieri')}
-         onEditSite={canEdit && selectedSite.stato !== 'TERMINATO' ? () => setCurrentScreen('modificaCantiere') : undefined}
-onCloseSite={canEdit && selectedSite.stato !== 'TERMINATO' ? async () => {
-  const confermato = window.confirm(`Sei sicuro di voler terminare "${selectedSite.nome}"? La data di fine sarà impostata ad oggi. Operazione irreversibile.`);
-  if (confermato) {
-    try {
-      await terminaCantiere(Number(selectedSite.id));
-      setCurrentScreen('cantieri');
-    } catch (err: any) {
-      alert(err.message);
-    }
-  }
-} : undefined}  
-onAddPhase={canEdit && selectedSite.stato !== 'TERMINATO' ? () => setCurrentScreen('aggiungiFase') : undefined}
-onSelectPhase={handleSelectPhase}
+            onEditSite={canEdit && selectedSite.stato !== 'TERMINATO' ? () => setCurrentScreen('modificaCantiere') : undefined}
+            onCloseSite={canEdit && selectedSite.stato !== 'TERMINATO' ? async () => {
+              const confermato = window.confirm(`Sei sicuro di voler terminare "${selectedSite.nome}"? La data di fine sarà impostata ad oggi. Operazione irreversibile.`);
+              if (confermato) {
+                try {
+                  await terminaCantiere(Number(selectedSite.id));
+                  setCurrentScreen('cantieri');
+                } catch (err: any) {
+                  alert(err.message);
+                }
+              }
+            } : undefined}
+            onAddPhase={canEdit && selectedSite.stato !== 'TERMINATO' ? () => setCurrentScreen('aggiungiFase') : undefined}
+            onSelectPhase={handleSelectPhase}
             onOpenTechnicalDocs={() => setCurrentScreen('documentiTecnici')}
             onOpenAccountingDocs={() => setCurrentScreen('documentiContabili')}
-          readOnly={isReadOnly || selectedSite.stato === 'TERMINATO'}
+            readOnly={isReadOnly || selectedSite.stato === 'TERMINATO'}
           />
         );
 
@@ -265,18 +247,18 @@ onSelectPhase={handleSelectPhase}
         );
 
       case 'modificaCantiere':
-  if (!selectedSite) return null;
-  return (
-    <ViewModificaCantiere
-      site={selectedSite}
-      onBack={() => setCurrentScreen('cantiere')}
-      onSuccess={async () => {
-        const aggiornato = await getDettagliCantiere(Number(selectedSite.id));
-        setSelectedSite(aggiornato);
-        setCurrentScreen('cantiere');
-      }}
-    />
-  );
+        if (!selectedSite) return null;
+        return (
+          <ViewModificaCantiere
+            site={selectedSite}
+            onBack={() => setCurrentScreen('cantiere')}
+            onSuccess={async () => {
+              const aggiornato = await getDettagliCantiere(Number(selectedSite.id));
+              setSelectedSite(aggiornato);
+              setCurrentScreen('cantiere');
+            }}
+          />
+        );
 
       case 'terminaCantiere':
         if (!selectedSite) return null;
@@ -299,7 +281,8 @@ onSelectPhase={handleSelectPhase}
             site={selectedSite}
             onBack={() => setCurrentScreen('cantiere')}
             onEditPhase={canEdit && selectedPhase.stato !== 'TERMINATA' ? () => setCurrentScreen('modificaFase') : undefined}
-         onCompletePhase={canEdit && selectedPhase.stato !== 'TERMINATA' ? () => setShowPhaseCompleteDialog(true) : undefined} />
+            onCompletePhase={canEdit && selectedPhase.stato !== 'TERMINATA' ? () => setShowPhaseCompleteDialog(true) : undefined}
+          />
         );
 
       case 'aggiungiFase':
@@ -313,19 +296,19 @@ onSelectPhase={handleSelectPhase}
         );
 
       case 'modificaFase':
-  if (!selectedPhase || !selectedSite) return null;
-  return (
-    <ViewModificaFaseCantiere
-      phase={selectedPhase}
-      site={selectedSite}
-      onBack={() => setCurrentScreen('fase')}
-      onSuccess={async () => {
-        const aggiornata = await getDettagliFase(Number(selectedPhase.id));
-        setSelectedPhase(aggiornata);
-        setCurrentScreen('fase');
-      }}
-    />
-  );
+        if (!selectedPhase || !selectedSite) return null;
+        return (
+          <ViewModificaFaseCantiere
+            phase={selectedPhase}
+            site={selectedSite}
+            onBack={() => setCurrentScreen('fase')}
+            onSuccess={async () => {
+              const aggiornata = await getDettagliFase(Number(selectedPhase.id));
+              setSelectedPhase(aggiornata);
+              setCurrentScreen('fase');
+            }}
+          />
+        );
 
       case 'documentiTecnici':
         if (!selectedSite) return null;
@@ -386,13 +369,6 @@ onSelectPhase={handleSelectPhase}
       case 'statistiche':
         return (
           <ViewMostraStatistiche
-            onBack={() => setCurrentScreen('homeAdmin')}
-          />
-        );
-
-      case 'log':
-        return (
-          <ViewVisualizzazioneLog
             onBack={() => setCurrentScreen('homeAdmin')}
           />
         );

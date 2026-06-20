@@ -3,9 +3,6 @@ package com.buildit.backend.gestioneFase;
 import com.buildit.backend.dominio.FaseLavorativa;
 import com.buildit.backend.dominio.Squadra;
 import com.buildit.backend.dominio.StatoFase;
-import com.buildit.backend.log.EsitoOperazione;
-import com.buildit.backend.log.Logger;
-import com.buildit.backend.log.TipoOperazione;
 import com.buildit.backend.repository.FaseLavorativaRepository;
 import com.buildit.backend.repository.SquadraRepository;
 import org.springframework.http.ResponseEntity;
@@ -22,14 +19,11 @@ public class FaseController {
 
     private final FaseLavorativaRepository faseLavorativaRepository;
     private final SquadraRepository        squadraRepository;
-    private final Logger                   logger;
 
     public FaseController(FaseLavorativaRepository faseLavorativaRepository,
-                          SquadraRepository squadraRepository,
-                          Logger logger) {
+                          SquadraRepository squadraRepository) {
         this.faseLavorativaRepository = faseLavorativaRepository;
         this.squadraRepository        = squadraRepository;
-        this.logger                   = logger;
     }
 
     @GetMapping("/{id}")
@@ -42,11 +36,8 @@ public class FaseController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> modificaFase(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> body,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
-
+    public ResponseEntity<?> modificaFase(@PathVariable Long id,
+                                           @RequestBody Map<String, String> body) {
         Optional<FaseLavorativa> opt = faseLavorativaRepository.findById(id);
         if (opt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("errore", "Fase non trovata"));
@@ -77,18 +68,11 @@ public class FaseController {
         }
 
         fase.setDataFinePrevista(nuovaFine);
-        FaseLavorativa salvata = faseLavorativaRepository.save(fase);
-        logger.log(email, TipoOperazione.MODIFICA_FASE,
-            "Fase modificata: '" + salvata.getNome() + "' (id=" + id + ")",
-            EsitoOperazione.SUCCESSO);
-        return ResponseEntity.ok(salvata);
+        return ResponseEntity.ok(faseLavorativaRepository.save(fase));
     }
 
     @PutMapping("/{id}/avvia")
-    public ResponseEntity<?> avviaFase(
-            @PathVariable Long id,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
-
+    public ResponseEntity<?> avviaFase(@PathVariable Long id) {
         Optional<FaseLavorativa> opt = faseLavorativaRepository.findById(id);
         if (opt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("errore", "Fase non trovata"));
@@ -98,18 +82,11 @@ public class FaseController {
             return ResponseEntity.badRequest().body(Map.of("errore", "Solo una fase pianificata può essere avviata"));
         }
         fase.avviaFase();
-        FaseLavorativa salvata = faseLavorativaRepository.save(fase);
-        logger.log(email, TipoOperazione.AVVIA_FASE,
-            "Fase avviata: '" + salvata.getNome() + "' (id=" + id + ")",
-            EsitoOperazione.SUCCESSO);
-        return ResponseEntity.ok(salvata);
+        return ResponseEntity.ok(faseLavorativaRepository.save(fase));
     }
 
     @PutMapping("/{id}/termina")
-    public ResponseEntity<?> terminaFase(
-            @PathVariable Long id,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
-
+    public ResponseEntity<?> terminaFase(@PathVariable Long id) {
         Optional<FaseLavorativa> opt = faseLavorativaRepository.findById(id);
         if (opt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("errore", "Fase non trovata"));
@@ -119,19 +96,12 @@ public class FaseController {
             return ResponseEntity.badRequest().body(Map.of("errore", "La fase è già terminata"));
         }
         fase.terminaFase();
-        FaseLavorativa salvata = faseLavorativaRepository.save(fase);
-        logger.log(email, TipoOperazione.TERMINA_FASE,
-            "Fase terminata: '" + salvata.getNome() + "' (id=" + id + ")",
-            EsitoOperazione.SUCCESSO);
-        return ResponseEntity.ok(salvata);
+        return ResponseEntity.ok(faseLavorativaRepository.save(fase));
     }
 
     @PutMapping("/{id}/assegna-squadra")
-    public ResponseEntity<?> assegnaSquadra(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> body,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
-
+    public ResponseEntity<?> assegnaSquadra(@PathVariable Long id,
+                                             @RequestBody Map<String, String> body) {
         Optional<FaseLavorativa> opt = faseLavorativaRepository.findById(id);
         if (opt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("errore", "Fase non trovata"));
@@ -143,10 +113,6 @@ public class FaseController {
             return ResponseEntity.status(404).body(Map.of("errore", "Squadra non trovata"));
         }
         fase.setSquadra(squadra.get());
-        FaseLavorativa salvata = faseLavorativaRepository.save(fase);
-        logger.log(email, TipoOperazione.ASSEGNA_SQUADRA,
-            "Squadra '" + squadra.get().getNome() + "' assegnata alla fase '" + salvata.getNome() + "'",
-            EsitoOperazione.SUCCESSO);
-        return ResponseEntity.ok(salvata);
+        return ResponseEntity.ok(faseLavorativaRepository.save(fase));
     }
 }

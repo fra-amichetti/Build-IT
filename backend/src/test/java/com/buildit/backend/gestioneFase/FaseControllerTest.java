@@ -3,7 +3,6 @@ package com.buildit.backend.gestioneFase;
 import com.buildit.backend.dominio.FaseLavorativa;
 import com.buildit.backend.dominio.Squadra;
 import com.buildit.backend.dominio.StatoFase;
-import com.buildit.backend.log.Logger;
 import com.buildit.backend.repository.FaseLavorativaRepository;
 import com.buildit.backend.repository.SquadraRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,15 +29,12 @@ class FaseControllerTest {
 
     @Mock private FaseLavorativaRepository faseLavorativaRepository;
     @Mock private SquadraRepository        squadraRepository;
-    @Mock private Logger                   logger;
 
     private FaseController controller;
 
-    private static final String EMAIL = "admin@buildit.it";
-
     @BeforeEach
     void setUp() {
-        controller = new FaseController(faseLavorativaRepository, squadraRepository, logger);
+        controller = new FaseController(faseLavorativaRepository, squadraRepository);
     }
 
     // ── modificaFase – controllo squadra ─────────────────────────────────────
@@ -53,7 +49,7 @@ class FaseControllerTest {
                 anyLong(), anyLong(), any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(List.of(conflitto));
 
-        ResponseEntity<?> risposta = controller.modificaFase(10L, Map.of("squadraId", "7"), EMAIL);
+        ResponseEntity<?> risposta = controller.modificaFase(10L, Map.of("squadraId", "7"));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).contains("squadra");
@@ -70,7 +66,7 @@ class FaseControllerTest {
         when(squadraRepository.findById(anyLong())).thenReturn(Optional.empty());
         when(faseLavorativaRepository.save(any())).thenReturn(fase);
 
-        ResponseEntity<?> risposta = controller.modificaFase(10L, Map.of("squadraId", "7"), EMAIL);
+        ResponseEntity<?> risposta = controller.modificaFase(10L, Map.of("squadraId", "7"));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -81,7 +77,7 @@ class FaseControllerTest {
         when(faseLavorativaRepository.findById(10L)).thenReturn(Optional.of(fase));
         when(faseLavorativaRepository.save(any())).thenReturn(fase);
 
-        ResponseEntity<?> risposta = controller.modificaFase(10L, Map.of("nome", "Nuovo nome"), EMAIL);
+        ResponseEntity<?> risposta = controller.modificaFase(10L, Map.of("nome", "Nuovo nome"));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(faseLavorativaRepository, never()).findOverlappingBySquadra(anyLong(), anyLong(), any(), any());
@@ -92,7 +88,7 @@ class FaseControllerTest {
         FaseLavorativa fase = fase(StatoFase.TERMINATA, 10L);
         when(faseLavorativaRepository.findById(10L)).thenReturn(Optional.of(fase));
 
-        ResponseEntity<?> risposta = controller.modificaFase(10L, Map.of("nome", "Test"), EMAIL);
+        ResponseEntity<?> risposta = controller.modificaFase(10L, Map.of("nome", "Test"));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         verify(faseLavorativaRepository, never()).save(any());
@@ -128,7 +124,7 @@ class FaseControllerTest {
         when(faseLavorativaRepository.findById(20L)).thenReturn(Optional.of(fase));
         when(faseLavorativaRepository.save(any())).thenReturn(fase);
 
-        ResponseEntity<?> risposta = controller.avviaFase(20L, EMAIL);
+        ResponseEntity<?> risposta = controller.avviaFase(20L);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(fase.getStato()).isEqualTo(StatoFase.IN_CORSO);
@@ -140,7 +136,7 @@ class FaseControllerTest {
         FaseLavorativa fase = fase(StatoFase.IN_CORSO, 20L);
         when(faseLavorativaRepository.findById(20L)).thenReturn(Optional.of(fase));
 
-        ResponseEntity<?> risposta = controller.avviaFase(20L, EMAIL);
+        ResponseEntity<?> risposta = controller.avviaFase(20L);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).containsIgnoringCase("pianificata");
@@ -151,7 +147,7 @@ class FaseControllerTest {
     void avviaFase_404_seNonTrovata() {
         when(faseLavorativaRepository.findById(99L)).thenReturn(Optional.empty());
 
-        ResponseEntity<?> risposta = controller.avviaFase(99L, EMAIL);
+        ResponseEntity<?> risposta = controller.avviaFase(99L);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -164,7 +160,7 @@ class FaseControllerTest {
         when(faseLavorativaRepository.findById(30L)).thenReturn(Optional.of(fase));
         when(faseLavorativaRepository.save(any())).thenReturn(fase);
 
-        ResponseEntity<?> risposta = controller.terminaFase(30L, EMAIL);
+        ResponseEntity<?> risposta = controller.terminaFase(30L);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(fase.getStato()).isEqualTo(StatoFase.TERMINATA);
@@ -176,7 +172,7 @@ class FaseControllerTest {
         FaseLavorativa fase = fase(StatoFase.TERMINATA, 30L);
         when(faseLavorativaRepository.findById(30L)).thenReturn(Optional.of(fase));
 
-        ResponseEntity<?> risposta = controller.terminaFase(30L, EMAIL);
+        ResponseEntity<?> risposta = controller.terminaFase(30L);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).containsIgnoringCase("terminata");
@@ -187,7 +183,7 @@ class FaseControllerTest {
     void terminaFase_404_seNonTrovata() {
         when(faseLavorativaRepository.findById(99L)).thenReturn(Optional.empty());
 
-        ResponseEntity<?> risposta = controller.terminaFase(99L, EMAIL);
+        ResponseEntity<?> risposta = controller.terminaFase(99L);
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -205,7 +201,7 @@ class FaseControllerTest {
         when(squadraRepository.findById(5L)).thenReturn(Optional.of(squadra));
         when(faseLavorativaRepository.save(any())).thenReturn(fase);
 
-        ResponseEntity<?> risposta = controller.assegnaSquadra(40L, Map.of("squadraId", "5"), EMAIL);
+        ResponseEntity<?> risposta = controller.assegnaSquadra(40L, Map.of("squadraId", "5"));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(fase.getSquadra()).isEqualTo(squadra);
@@ -215,7 +211,7 @@ class FaseControllerTest {
     void assegnaSquadra_404_seFaseNonTrovata() {
         when(faseLavorativaRepository.findById(99L)).thenReturn(Optional.empty());
 
-        ResponseEntity<?> risposta = controller.assegnaSquadra(99L, Map.of("squadraId", "5"), EMAIL);
+        ResponseEntity<?> risposta = controller.assegnaSquadra(99L, Map.of("squadraId", "5"));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         verify(faseLavorativaRepository, never()).save(any());
@@ -227,7 +223,7 @@ class FaseControllerTest {
         when(faseLavorativaRepository.findById(40L)).thenReturn(Optional.of(fase));
         when(squadraRepository.findById(99L)).thenReturn(Optional.empty());
 
-        ResponseEntity<?> risposta = controller.assegnaSquadra(40L, Map.of("squadraId", "99"), EMAIL);
+        ResponseEntity<?> risposta = controller.assegnaSquadra(40L, Map.of("squadraId", "99"));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         verify(faseLavorativaRepository, never()).save(any());

@@ -1,19 +1,15 @@
 package com.buildit.backend.gestioneCantieri;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-
-import com.buildit.backend.log.EsitoOperazione;
-import com.buildit.backend.log.Logger;
-import com.buildit.backend.log.TipoOperazione;
+import com.buildit.backend.dominio.Cantiere;
+import com.buildit.backend.dominio.StatoCantiere;
+import com.buildit.backend.repository.CantiereRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 
-import com.buildit.backend.dominio.Cantiere;
-import com.buildit.backend.dominio.StatoCantiere;
-import com.buildit.backend.repository.CantiereRepository;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cantieri")
@@ -21,11 +17,9 @@ import com.buildit.backend.repository.CantiereRepository;
 public class ListaCantieriController {
 
     private final CantiereRepository cantiereRepository;
-    private final Logger             logger;
 
-    public ListaCantieriController(CantiereRepository cantiereRepository, Logger logger) {
+    public ListaCantieriController(CantiereRepository cantiereRepository) {
         this.cantiereRepository = cantiereRepository;
-        this.logger             = logger;
     }
 
     @GetMapping
@@ -46,15 +40,12 @@ public class ListaCantieriController {
     }
 
     @PostMapping
-    public ResponseEntity<?> aggiungiCantiere(
-            @RequestBody Map<String, String> body,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
-
-        String nome                 = body.get("nome");
-        String indirizzo            = body.get("indirizzo");
+    public ResponseEntity<?> aggiungiCantiere(@RequestBody Map<String, String> body) {
+        String nome                  = body.get("nome");
+        String indirizzo             = body.get("indirizzo");
         String dataInizioPrevistaStr = body.get("dataInizioPrevista");
         String dataFinePrevistaStr   = body.get("dataFinePrevista");
-        String emailCliente         = body.get("emailCliente");
+        String emailCliente          = body.get("emailCliente");
 
         if (nome == null || nome.isBlank())
             return ResponseEntity.badRequest().body(Map.of("errore", "Il nome è obbligatorio"));
@@ -78,11 +69,7 @@ public class ListaCantieriController {
         cantiere.setEmailCliente(emailCliente);
         cantiere.setStato(StatoCantiere.PIANIFICATO);
 
-        Cantiere salvato = cantiereRepository.save(cantiere);
-        logger.log(email, TipoOperazione.CREA_CANTIERE,
-            "Nuovo cantiere creato: '" + salvato.getNome() + "' in " + salvato.getIndirizzo(),
-            EsitoOperazione.SUCCESSO);
-        return ResponseEntity.ok(salvato);
+        return ResponseEntity.ok(cantiereRepository.save(cantiere));
     }
 
     @Scheduled(cron = "0 0 0 * * *")

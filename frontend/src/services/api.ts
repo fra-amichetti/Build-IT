@@ -1,21 +1,6 @@
 const BASE_URL = 'https://build-it-production.up.railway.app/api';
 export const FILE_BASE_URL = 'https://build-it-production.up.railway.app';
 
-// Utente corrente — impostato al login per includere i header X-User-* nelle richieste
-let _currentUser: { email: string; ruolo: string } | null = null;
-
-export function setCurrentUser(user: { email: string; ruolo: string } | null) {
-  _currentUser = user;
-}
-
-function authHeaders(): Record<string, string> {
-  if (!_currentUser) return {};
-  return {
-    'X-User-Email': _currentUser.email,
-    'X-User-Role':  _currentUser.ruolo,
-  };
-}
-
 export async function login(email: string, password: string) {
   const response = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
@@ -78,7 +63,6 @@ export async function getDipendenti() {
 export async function eliminaDipendente(id: number) {
   const response = await fetch(`${BASE_URL}/dipendenti/${id}`, {
     method: 'DELETE',
-    headers: authHeaders(),
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.errore || 'Errore durante l\'eliminazione');
@@ -87,7 +71,6 @@ export async function eliminaDipendente(id: number) {
 
 // ── CANTIERI ──────────────────────────────────────────────
 
-// Tutti i cantieri (admin/dipendente)
 export async function getElencoCantieri() {
   const response = await fetch(`${BASE_URL}/cantieri`);
   const data = await response.json();
@@ -95,7 +78,6 @@ export async function getElencoCantieri() {
   return data;
 }
 
-// Cantieri filtrati per email cliente
 export async function getElencoCantieriCliente(email: string) {
   const response = await fetch(`${BASE_URL}/cantieri?email=${email}`);
   const data = await response.json();
@@ -103,7 +85,6 @@ export async function getElencoCantieriCliente(email: string) {
   return data;
 }
 
-// Dettaglio singolo cantiere
 export async function getDettagliCantiere(id: number) {
   const response = await fetch(`${BASE_URL}/cantieri/${id}`);
   const data = await response.json();
@@ -111,7 +92,6 @@ export async function getDettagliCantiere(id: number) {
   return data;
 }
 
-// Crea nuovo cantiere
 export async function aggiungiCantiere(
   nome: string,
   indirizzo: string,
@@ -135,7 +115,6 @@ export async function aggiungiCantiere(
   return data;
 }
 
-// Modifica cantiere
 export async function modificaCantiere(
   id: number,
   updates: { nome?: string; indirizzo?: string; emailCliente?: string }
@@ -150,7 +129,6 @@ export async function modificaCantiere(
   return data;
 }
 
-// Avvia cantiere
 export async function iniziaLavoriCantiere(id: number) {
   const response = await fetch(`${BASE_URL}/cantieri/${id}/avvia`, {
     method: 'PUT',
@@ -160,7 +138,6 @@ export async function iniziaLavoriCantiere(id: number) {
   return data;
 }
 
-// Termina cantiere
 export async function terminaCantiere(id: number) {
   const response = await fetch(`${BASE_URL}/cantieri/${id}/termina`, {
     method: 'PUT',
@@ -231,6 +208,7 @@ export async function getDettagliFase(id: number) {
   if (!response.ok) throw new Error('Fase non trovata');
   return data;
 }
+
 // ── SQUADRE ──────────────────────────────────────────────
 
 export async function getSquadre() {
@@ -262,7 +240,6 @@ export async function eliminaSquadra(id: number) {
   if (!response.ok) throw new Error(data.errore || 'Errore durante l\'eliminazione della squadra');
   return data;
 }
-
 
 // ── STATISTICHE ──────────────────────────────────────────
 
@@ -330,6 +307,7 @@ export async function getDocumentiContabili(cantiereId: number) {
   if (!response.ok) throw new Error('Errore nel caricamento dei documenti contabili');
   return data;
 }
+
 export async function aggiungiDocumentoContabile(
   cantiereId: number,
   nome: string,
@@ -371,39 +349,5 @@ export async function saldaFattura(cantiereId: number, id: number) {
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.errore || 'Errore durante il saldo della fattura');
-  return data;
-}
-
-// ── LOG DI SISTEMA (solo Amministratore) ──────────────────────────────────────
-
-export interface LogFiltri {
-  email?: string;
-  operazione?: string;
-  da?: string;
-  a?: string;
-}
-
-export async function getLogs(filtri?: LogFiltri) {
-  const params = new URLSearchParams();
-  if (filtri?.email)      params.set('email',      filtri.email);
-  if (filtri?.operazione) params.set('operazione', filtri.operazione);
-  if (filtri?.da)         params.set('da',         filtri.da);
-  if (filtri?.a)          params.set('a',          filtri.a);
-
-  const qs = params.toString() ? `?${params.toString()}` : '';
-  const response = await fetch(`${BASE_URL}/log${qs}`, {
-    headers: authHeaders(),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.errore || 'Errore nel caricamento dei log');
-  return data;
-}
-
-export async function getAccessiSospetti() {
-  const response = await fetch(`${BASE_URL}/log/sospetti`, {
-    headers: authHeaders(),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.errore || 'Errore nel caricamento degli accessi sospetti');
   return data;
 }

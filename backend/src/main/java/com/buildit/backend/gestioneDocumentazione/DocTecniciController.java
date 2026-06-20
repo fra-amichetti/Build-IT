@@ -1,9 +1,6 @@
 package com.buildit.backend.gestioneDocumentazione;
 
 import com.buildit.backend.dominio.*;
-import com.buildit.backend.log.EsitoOperazione;
-import com.buildit.backend.log.Logger;
-import com.buildit.backend.log.TipoOperazione;
 import com.buildit.backend.repository.*;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,18 +22,15 @@ public class DocTecniciController {
     private final CantiereRepository         cantiereRepository;
     private final FaseLavorativaRepository   faseLavorativaRepository;
     private final FileStorageService         fileStorageService;
-    private final Logger                     logger;
 
     public DocTecniciController(DocumentoTecnicoRepository documentoTecnicoRepository,
                                  CantiereRepository cantiereRepository,
                                  FaseLavorativaRepository faseLavorativaRepository,
-                                 FileStorageService fileStorageService,
-                                 Logger logger) {
+                                 FileStorageService fileStorageService) {
         this.documentoTecnicoRepository = documentoTecnicoRepository;
         this.cantiereRepository         = cantiereRepository;
         this.faseLavorativaRepository   = faseLavorativaRepository;
         this.fileStorageService         = fileStorageService;
-        this.logger                     = logger;
     }
 
     @GetMapping
@@ -55,8 +49,7 @@ public class DocTecniciController {
             @RequestParam(required = false) String tipologia,
             @RequestParam MultipartFile file,
             @RequestParam String data,
-            @RequestParam(required = false) String faseId,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
+            @RequestParam(required = false) String faseId) {
 
         if (nome == null || nome.isBlank())
             return ResponseEntity.badRequest().body(Map.of("errore", "Il nome è obbligatorio"));
@@ -91,11 +84,7 @@ public class DocTecniciController {
         if (faseId != null && !faseId.isBlank())
             faseLavorativaRepository.findById(Long.parseLong(faseId)).ifPresent(doc::setFase);
 
-        DocumentoTecnico salvato = documentoTecnicoRepository.save(doc);
-        logger.log(email, TipoOperazione.CARICA_DOCUMENTO_TECNICO,
-            "Documento tecnico '" + salvato.getNome() + "' caricato nel cantiere id=" + cantiereId,
-            EsitoOperazione.SUCCESSO);
-        return ResponseEntity.ok(salvato);
+        return ResponseEntity.ok(documentoTecnicoRepository.save(doc));
     }
 
     @DeleteMapping("/{id}")

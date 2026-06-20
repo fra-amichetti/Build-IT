@@ -1,7 +1,6 @@
 package com.buildit.backend.gestioneAmministratore;
 
 import com.buildit.backend.dominio.Dipendente;
-import com.buildit.backend.log.Logger;
 import com.buildit.backend.repository.UtenteRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,12 +24,9 @@ class DipendentiControllerTest {
 
     @Mock private UtenteRepository utenteRepository;
     @Mock private PasswordEncoder  passwordEncoder;
-    @Mock private Logger           logger;
 
     @InjectMocks
     private DipendentiController controller;
-
-    private static final String EMAIL_ADMIN = "admin@buildit.it";
 
     // ── aggiungiDipendente ────────────────────────────────────────────────────
 
@@ -44,7 +40,7 @@ class DipendentiControllerTest {
                 "nome", "Paolo", "cognome", "Verdi",
                 "email", "paolo@buildit.it", "password", "Password1!",
                 "incarico", "Elettricista"
-        ), EMAIL_ADMIN);
+        ));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(utenteRepository).save(any());
@@ -58,7 +54,7 @@ class DipendentiControllerTest {
                 "nome", "Marco", "cognome", "Rossi",
                 "email", "dup@buildit.it", "password", "Password2!",
                 "incarico", "Idraulico"
-        ), EMAIL_ADMIN);
+        ));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).contains("registrata");

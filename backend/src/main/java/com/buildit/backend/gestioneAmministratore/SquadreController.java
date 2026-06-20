@@ -3,15 +3,11 @@ package com.buildit.backend.gestioneAmministratore;
 import com.buildit.backend.dominio.Squadra;
 import com.buildit.backend.dominio.Specializzazione;
 import com.buildit.backend.dominio.StatoFase;
-import com.buildit.backend.log.EsitoOperazione;
-import com.buildit.backend.log.Logger;
-import com.buildit.backend.log.TipoOperazione;
 import com.buildit.backend.repository.FaseLavorativaRepository;
 import com.buildit.backend.repository.SquadraRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -22,14 +18,11 @@ public class SquadreController {
 
     private final SquadraRepository        squadraRepository;
     private final FaseLavorativaRepository faseLavorativaRepository;
-    private final Logger                   logger;
 
     public SquadreController(SquadraRepository squadraRepository,
-                              FaseLavorativaRepository faseLavorativaRepository,
-                              Logger logger) {
+                              FaseLavorativaRepository faseLavorativaRepository) {
         this.squadraRepository        = squadraRepository;
         this.faseLavorativaRepository = faseLavorativaRepository;
-        this.logger                   = logger;
     }
 
     @GetMapping
@@ -38,10 +31,7 @@ public class SquadreController {
     }
 
     @PostMapping
-    public ResponseEntity<?> aggiungiSquadra(
-            @RequestBody Map<String, String> body,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
-
+    public ResponseEntity<?> aggiungiSquadra(@RequestBody Map<String, String> body) {
         String nome               = body.get("nome");
         String specializzazioneStr = body.get("specializzazione");
         String numComponentiStr   = body.get("numeroComponenti");
@@ -57,18 +47,11 @@ public class SquadreController {
         squadra.setNumeroComponenti(Integer.parseInt(numComponentiStr));
         squadra.setSpecializzazione(Specializzazione.valueOf(specializzazioneStr));
 
-        Squadra salvata = squadraRepository.save(squadra);
-        logger.log(email, TipoOperazione.CREA_SQUADRA,
-            "Squadra creata: '" + salvata.getNome() + "' — " + salvata.getSpecializzazione(),
-            EsitoOperazione.SUCCESSO);
-        return ResponseEntity.ok(salvata);
+        return ResponseEntity.ok(squadraRepository.save(squadra));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminaSquadra(
-            @PathVariable Long id,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
-
+    public ResponseEntity<?> eliminaSquadra(@PathVariable Long id) {
         Optional<Squadra> opt = squadraRepository.findById(id);
         if (opt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("errore", "Squadra non trovata"));
@@ -83,11 +66,7 @@ public class SquadreController {
             return ResponseEntity.badRequest().body(Map.of("errore", "Squadra impegnata in fasi attive"));
         }
 
-        String nomeSquadra = opt.get().getNome();
         squadraRepository.deleteById(id);
-        logger.log(email, TipoOperazione.ELIMINA_SQUADRA,
-            "Squadra eliminata: '" + nomeSquadra + "' (id=" + id + ")",
-            EsitoOperazione.SUCCESSO);
         return ResponseEntity.ok(Map.of("messaggio", "Squadra eliminata"));
     }
 }

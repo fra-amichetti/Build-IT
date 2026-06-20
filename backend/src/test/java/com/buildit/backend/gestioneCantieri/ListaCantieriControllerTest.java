@@ -2,7 +2,6 @@ package com.buildit.backend.gestioneCantieri;
 
 import com.buildit.backend.dominio.Cantiere;
 import com.buildit.backend.dominio.StatoCantiere;
-import com.buildit.backend.log.Logger;
 import com.buildit.backend.repository.CantiereRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,15 +24,12 @@ import static org.mockito.Mockito.*;
 class ListaCantieriControllerTest {
 
     @Mock private CantiereRepository cantiereRepository;
-    @Mock private Logger             logger;
 
     private ListaCantieriController controller;
 
-    private static final String EMAIL = "admin@buildit.it";
-
     @BeforeEach
     void setUp() {
-        controller = new ListaCantieriController(cantiereRepository, logger);
+        controller = new ListaCantieriController(cantiereRepository);
     }
 
     // ── getElencoCantieri ─────────────────────────────────────────────────────
@@ -83,7 +79,7 @@ class ListaCantieriControllerTest {
                 "dataInizioPrevista", "2026-07-01",
                 "dataFinePrevista", "2026-12-31",
                 "emailCliente", "cliente@test.it"
-        ), EMAIL);
+        ));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(cantiereRepository).save(any());
@@ -96,7 +92,7 @@ class ListaCantieriControllerTest {
                 "indirizzo", "Via Test 1",
                 "dataInizioPrevista", "2026-07-01",
                 "dataFinePrevista", "2026-12-31"
-        ), EMAIL);
+        ));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).containsIgnoringCase("nome");
@@ -110,7 +106,7 @@ class ListaCantieriControllerTest {
                 "indirizzo", "",
                 "dataInizioPrevista", "2026-07-01",
                 "dataFinePrevista", "2026-12-31"
-        ), EMAIL);
+        ));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).containsIgnoringCase("indirizzo");
@@ -123,7 +119,7 @@ class ListaCantieriControllerTest {
                 "indirizzo", "Via Test 1",
                 "dataInizioPrevista", "2026-12-31",
                 "dataFinePrevista", "2026-01-01"
-        ), EMAIL);
+        ));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(errore(risposta)).containsIgnoringCase("fine");
@@ -136,7 +132,7 @@ class ListaCantieriControllerTest {
                 "indirizzo", "Via Test 1",
                 "dataInizioPrevista", "2026-07-01",
                 "dataFinePrevista", "2026-07-01"
-        ), EMAIL);
+        ));
 
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }

@@ -1,9 +1,6 @@
 package com.buildit.backend.gestioneDocumentazione;
 
 import com.buildit.backend.dominio.*;
-import com.buildit.backend.log.EsitoOperazione;
-import com.buildit.backend.log.Logger;
-import com.buildit.backend.log.TipoOperazione;
 import com.buildit.backend.repository.*;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,18 +22,15 @@ public class DocContabiliController {
     private final CantiereRepository           cantiereRepository;
     private final FaseLavorativaRepository     faseLavorativaRepository;
     private final FileStorageService           fileStorageService;
-    private final Logger                       logger;
 
     public DocContabiliController(DocumentoContabileRepository documentoContabileRepository,
                                    CantiereRepository cantiereRepository,
                                    FaseLavorativaRepository faseLavorativaRepository,
-                                   FileStorageService fileStorageService,
-                                   Logger logger) {
+                                   FileStorageService fileStorageService) {
         this.documentoContabileRepository = documentoContabileRepository;
         this.cantiereRepository           = cantiereRepository;
         this.faseLavorativaRepository     = faseLavorativaRepository;
         this.fileStorageService           = fileStorageService;
-        this.logger                       = logger;
     }
 
     @GetMapping
@@ -56,8 +50,7 @@ public class DocContabiliController {
             @RequestParam String importo,
             @RequestParam MultipartFile file,
             @RequestParam String data,
-            @RequestParam(required = false) String faseId,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String email) {
+            @RequestParam(required = false) String faseId) {
 
         if (nome == null || nome.isBlank())
             return ResponseEntity.badRequest().body(Map.of("errore", "Il nome è obbligatorio"));
@@ -107,11 +100,7 @@ public class DocContabiliController {
         if (faseId != null && !faseId.isBlank())
             faseLavorativaRepository.findById(Long.parseLong(faseId)).ifPresent(doc::setFase);
 
-        DocumentoContabile salvato = documentoContabileRepository.save(doc);
-        logger.log(email, TipoOperazione.CARICA_DOCUMENTO_CONTABILE,
-            tipo + " '" + salvato.getNome() + "' (€" + importoNum + ") caricata nel cantiere id=" + cantiereId,
-            EsitoOperazione.SUCCESSO);
-        return ResponseEntity.ok(salvato);
+        return ResponseEntity.ok(documentoContabileRepository.save(doc));
     }
 
     @DeleteMapping("/{id}")

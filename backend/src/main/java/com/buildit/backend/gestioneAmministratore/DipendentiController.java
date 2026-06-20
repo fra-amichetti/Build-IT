@@ -2,9 +2,6 @@ package com.buildit.backend.gestioneAmministratore;
 
 import com.buildit.backend.dominio.Dipendente;
 import com.buildit.backend.dominio.Utente;
-import com.buildit.backend.log.EsitoOperazione;
-import com.buildit.backend.log.Logger;
-import com.buildit.backend.log.TipoOperazione;
 import com.buildit.backend.repository.UtenteRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,23 +14,17 @@ import java.util.*;
 @CrossOrigin(origins = "http://localhost:5173")
 public class DipendentiController {
 
-    private final UtenteRepository  utenteRepository;
-    private final PasswordEncoder   passwordEncoder;
-    private final Logger            logger;
+    private final UtenteRepository utenteRepository;
+    private final PasswordEncoder  passwordEncoder;
 
     public DipendentiController(UtenteRepository utenteRepository,
-                                 PasswordEncoder passwordEncoder,
-                                 Logger logger) {
+                                 PasswordEncoder passwordEncoder) {
         this.utenteRepository = utenteRepository;
         this.passwordEncoder  = passwordEncoder;
-        this.logger           = logger;
     }
 
     @PostMapping
-    public ResponseEntity<?> aggiungiDipendente(
-            @RequestBody Map<String, String> body,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String adminEmail) {
-
+    public ResponseEntity<?> aggiungiDipendente(@RequestBody Map<String, String> body) {
         String email = body.get("email");
 
         if (utenteRepository.existsByEmail(email)) {
@@ -48,30 +39,19 @@ public class DipendentiController {
         dipendente.setIncarico(body.get("incarico"));
         utenteRepository.save(dipendente);
 
-        logger.log(adminEmail, TipoOperazione.CREA_DIPENDENTE,
-            "Dipendente aggiunto: " + dipendente.getNome() + " " + dipendente.getCognome() +
-            " (" + email + ") — incarico: " + dipendente.getIncarico(),
-            EsitoOperazione.SUCCESSO);
         return ResponseEntity.ok(Map.of("messaggio", "Dipendente aggiunto"));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminaDipendente(
-            @PathVariable Long id,
-            @RequestHeader(value = "X-User-Email", required = false, defaultValue = "SCONOSCIUTO") String adminEmail) {
-
+    public ResponseEntity<?> eliminaDipendente(@PathVariable Long id) {
         Optional<Utente> opt = utenteRepository.findById(id);
         if (opt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("errore", "Dipendente non trovato"));
         }
-        if (!(opt.get() instanceof Dipendente d)) {
+        if (!(opt.get() instanceof Dipendente)) {
             return ResponseEntity.status(400).body(Map.of("errore", "L'utente non è un dipendente"));
         }
-
         utenteRepository.deleteById(id);
-        logger.log(adminEmail, TipoOperazione.ELIMINA_DIPENDENTE,
-            "Dipendente eliminato: " + d.getNome() + " " + d.getCognome() + " (" + d.getEmail() + ")",
-            EsitoOperazione.SUCCESSO);
         return ResponseEntity.ok(Map.of("messaggio", "Dipendente eliminato"));
     }
 

@@ -1,7 +1,6 @@
 package com.buildit.backend.dominio;
 
 import java.time.LocalDate;
-import com.buildit.backend.dominio.StatoFase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
