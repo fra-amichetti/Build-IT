@@ -1,7 +1,9 @@
 package com.buildit.backend.gestioneFase;
 
+import com.buildit.backend.dominio.Cantiere;
 import com.buildit.backend.dominio.FaseLavorativa;
 import com.buildit.backend.dominio.Squadra;
+import com.buildit.backend.dominio.StatoCantiere;
 import com.buildit.backend.dominio.StatoFase;
 import com.buildit.backend.repository.FaseLavorativaRepository;
 import com.buildit.backend.repository.SquadraRepository;
@@ -152,6 +154,18 @@ class FaseControllerTest {
         assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    void avviaFase_400_seCantierePianificato() {
+        FaseLavorativa fase = fase(StatoFase.PIANIFICATA, 20L, StatoCantiere.PIANIFICATO);
+        when(faseLavorativaRepository.findById(20L)).thenReturn(Optional.of(fase));
+
+        ResponseEntity<?> risposta = controller.avviaFase(20L);
+
+        assertThat(risposta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(errore(risposta)).containsIgnoringCase("cantiere");
+        verify(faseLavorativaRepository, never()).save(any());
+    }
+
     // ── terminaFase ───────────────────────────────────────────────────────────
 
     @Test
@@ -236,12 +250,19 @@ class FaseControllerTest {
     }
 
     private static FaseLavorativa fase(StatoFase stato, Long id) {
+        return fase(stato, id, StatoCantiere.IN_CORSO);
+    }
+
+    private static FaseLavorativa fase(StatoFase statoFase, Long id, StatoCantiere statoCantiere) {
         FaseLavorativa f = new FaseLavorativa();
         f.setId(id);
         f.setNome("Fase test");
         f.setDataInizioPrevista(LocalDate.of(2025, 3, 1));
         f.setDataFinePrevista(LocalDate.of(2025, 5, 31));
-        f.setStato(stato);
+        f.setStato(statoFase);
+        Cantiere c = new Cantiere();
+        c.setStato(statoCantiere);
+        f.setCantiere(c);
         return f;
     }
 

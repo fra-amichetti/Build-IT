@@ -282,6 +282,7 @@ function AppContent() {
             onBack={() => setCurrentScreen('cantiere')}
             onEditPhase={canEdit && selectedPhase.stato !== 'TERMINATA' ? () => setCurrentScreen('modificaFase') : undefined}
             onCompletePhase={canEdit && selectedPhase.stato !== 'TERMINATA' ? () => setShowPhaseCompleteDialog(true) : undefined}
+            readOnly={isReadOnly}
           />
         );
 

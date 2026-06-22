@@ -21,6 +21,7 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
+            // SecurityConfig.java
             .authorizeHttpRequests(auth -> auth
                 .anyRequest().permitAll()
             )

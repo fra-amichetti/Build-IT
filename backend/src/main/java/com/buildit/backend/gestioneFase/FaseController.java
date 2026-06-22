@@ -2,6 +2,7 @@ package com.buildit.backend.gestioneFase;
 
 import com.buildit.backend.dominio.FaseLavorativa;
 import com.buildit.backend.dominio.Squadra;
+import com.buildit.backend.dominio.StatoCantiere;
 import com.buildit.backend.dominio.StatoFase;
 import com.buildit.backend.repository.FaseLavorativaRepository;
 import com.buildit.backend.repository.SquadraRepository;
@@ -80,6 +81,10 @@ public class FaseController {
         FaseLavorativa fase = opt.get();
         if (fase.getStato() != StatoFase.PIANIFICATA) {
             return ResponseEntity.badRequest().body(Map.of("errore", "Solo una fase pianificata può essere avviata"));
+        }
+        if (fase.getCantiere().getStato() == StatoCantiere.PIANIFICATO) {
+            return ResponseEntity.badRequest().body(Map.of("errore",
+                "Il cantiere deve essere avviato prima di poter avviare una fase"));
         }
         fase.avviaFase();
         return ResponseEntity.ok(faseLavorativaRepository.save(fase));
